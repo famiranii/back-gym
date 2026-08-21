@@ -11,7 +11,8 @@ type Config struct {
 	DB_PORT       string `json:"db_port"`
 	DB_USERNAME   string `json:"db_username"`
 	DB_PASSWORD   string `json:"db_password"`
-	DB_DATABASE       string `json:"db_database"`
+	DB_DATABASE   string `json:"db_database"`
+	MIGRATION_URL string `json:"migration_url"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

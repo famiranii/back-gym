@@ -1,18 +1,23 @@
 version: "2"
+
 sql:
   - engine: "postgresql"
-    queries: "internal/db/queries"
+    queries: "internal/db/query"
     schema: "internal/db/migration"
+
     gen:
       go:
         package: "db"
         out: "internal/db/sqlc"
         sql_package: "pgx/v5"
-        emit-json_tags: true
-        emit-interface: true
-        emit-empty-slices: true
+
+        emit_json_tags: true
+        emit_interface: true
+        emit_empty_slices: true
+
         overrides:
           - db_type: "timestamp"
             go_type: "time.Time"
+
           - db_type: "uuid"
             go_type: "github.com/google/uuid.UUID"
