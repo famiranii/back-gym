@@ -1,6 +1,10 @@
 package util
 
-import "github.com/spf13/viper"
+import (
+	"time"
+
+	"github.com/spf13/viper"
+)
 
 type Config struct {
 	APP_NAME      string `json:"app_name"`
@@ -13,6 +17,9 @@ type Config struct {
 	DB_PASSWORD   string `json:"db_password"`
 	DB_DATABASE   string `json:"db_database"`
 	MIGRATION_URL string `json:"migration_url"`
+	JWT_SECRET    string `mapstructure:"JWT_SECRET"`
+    ACCESS_TOKEN_DURATION time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+    REFRESH_TOKEN_DURATION time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -22,7 +29,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.AutomaticEnv()
 	err = viper.ReadInConfig()
 	if err != nil {
-		return
+		return	
 	}
 	err = viper.Unmarshal(&config)
 	return

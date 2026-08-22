@@ -5,9 +5,24 @@
 package db
 
 import (
+	"net/netip"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
+
+type Session struct {
+	ID           uuid.UUID        `json:"id"`
+	UserID       uuid.UUID        `json:"user_id"`
+	Phone        string           `json:"phone"`
+	RefreshToken string           `json:"refresh_token"`
+	UserAgent    pgtype.Text      `json:"user_agent"`
+	ClientIp     *netip.Addr      `json:"client_ip"`
+	IsBlocked    bool             `json:"is_blocked"`
+	ExpiresAt    pgtype.Timestamp `json:"expires_at"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+}
 
 type User struct {
 	ID        uuid.UUID        `json:"id"`
