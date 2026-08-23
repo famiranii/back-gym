@@ -12,30 +12,23 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (first_name, last_name, phone, password)
-VALUES ($1, $2, $3, $4)
-RETURNING id, first_name, last_name, phone, password, created_at, updated_at
+INSERT INTO users (full_name, phone, password)
+VALUES ($1, $2, $3)
+RETURNING id, full_name, phone, password, created_at, updated_at
 `
 
 type CreateUserParams struct {
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
-	Phone     string `json:"phone"`
-	Password  string `json:"password"`
+	FullName string `json:"full_name"`
+	Phone    string `json:"phone"`
+	Password string `json:"password"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser,
-		arg.FirstName,
-		arg.LastName,
-		arg.Phone,
-		arg.Password,
-	)
+	row := q.db.QueryRow(ctx, createUser, arg.FullName, arg.Phone, arg.Password)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.FirstName,
-		&i.LastName,
+		&i.FullName,
 		&i.Phone,
 		&i.Password,
 		&i.CreatedAt,
@@ -45,7 +38,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, first_name, last_name, phone, password, created_at, updated_at
+SELECT id, full_name, phone, password, created_at, updated_at
 FROM users
 ORDER BY created_at DESC
 `
@@ -61,8 +54,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 		var i User
 		if err := rows.Scan(
 			&i.ID,
-			&i.FirstName,
-			&i.LastName,
+			&i.FullName,
 			&i.Phone,
 			&i.Password,
 			&i.CreatedAt,
@@ -79,7 +71,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, first_name, last_name, phone, password, created_at, updated_at FROM users
+SELECT id, full_name, phone, password, created_at, updated_at FROM users
 WHERE id = $1
 `
 
@@ -88,8 +80,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.FirstName,
-		&i.LastName,
+		&i.FullName,
 		&i.Phone,
 		&i.Password,
 		&i.CreatedAt,
@@ -99,7 +90,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByPhone = `-- name: GetUserByPhone :one
-SELECT id, first_name, last_name, phone, password, created_at, updated_at FROM users
+SELECT id, full_name, phone, password, created_at, updated_at FROM users
 WHERE phone = $1
 `
 
@@ -108,8 +99,7 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phone string) (User, error
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.FirstName,
-		&i.LastName,
+		&i.FullName,
 		&i.Phone,
 		&i.Password,
 		&i.CreatedAt,

@@ -17,7 +17,7 @@ const blockSession = `-- name: BlockSession :one
 UPDATE sessions
 SET is_blocked = true
 WHERE id = $1
-RETURNING id, user_id, phone, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at, updated_at
+RETURNING id, phone, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at, updated_at
 `
 
 func (q *Queries) BlockSession(ctx context.Context, id uuid.UUID) (Session, error) {
@@ -25,7 +25,6 @@ func (q *Queries) BlockSession(ctx context.Context, id uuid.UUID) (Session, erro
 	var i Session
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.Phone,
 		&i.RefreshToken,
 		&i.UserAgent,
@@ -49,7 +48,7 @@ INSERT INTO sessions (
     expires_at
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, user_id, phone, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at, updated_at
+RETURNING id, phone, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at, updated_at
 `
 
 type CreateSessionParams struct {
@@ -75,7 +74,6 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	var i Session
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.Phone,
 		&i.RefreshToken,
 		&i.UserAgent,
@@ -99,7 +97,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id uuid.UUID) error {
 }
 
 const getSession = `-- name: GetSession :one
-SELECT id, user_id, phone, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at, updated_at FROM sessions
+SELECT id, phone, refresh_token, user_agent, client_ip, is_blocked, expires_at, created_at, updated_at FROM sessions
 WHERE id = $1
 LIMIT 1
 `
@@ -109,7 +107,6 @@ func (q *Queries) GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	var i Session
 	err := row.Scan(
 		&i.ID,
-		&i.UserID,
 		&i.Phone,
 		&i.RefreshToken,
 		&i.UserAgent,

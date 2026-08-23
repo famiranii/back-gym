@@ -20,14 +20,12 @@ type UserHandler struct {
 }
 
 type CreateUserRequest struct {
-	FirstName   string `json:"first_name" validate:"required"`
-	LastName    string `json:"last_name" validate:"required"`
+	FullName    string `json:"full_name" validate:"required"`
 	PhoneNumber string `json:"phone" validate:"required"`
 	Password    string `json:"password" validate:"required"`
 }
 type userResponse struct {
-	FirstName string           `json:"first_name"`
-	LastName  string           `json:"last_name"`
+	FullName string           `json:"full_name"`
 	Phone     string           `json:"phone"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
@@ -44,8 +42,7 @@ var validate = validator.New()
 
 func NewUserResponse(user db.User) userResponse {
 	return userResponse{
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
+		FullName:  user.FullName,
 		Phone:     user.Phone,
 		CreatedAt: user.CreatedAt,
 	}
@@ -149,6 +146,6 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 		RefreshTokenExpiresAt: refreshPayload.ExpiredAt,
 		User:                  NewUserResponse(user),
 	}
-	return c.Status(fiber.StatusBadRequest).JSON(rsp)
+	return c.Status(fiber.StatusOK).JSON(rsp)
 
 }

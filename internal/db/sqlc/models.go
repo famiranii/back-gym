@@ -11,9 +11,46 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Category struct {
+	ID        uuid.UUID        `json:"id"`
+	Name      string           `json:"name"`
+	ParentID  pgtype.UUID      `json:"parent_id"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type Product struct {
+	ID          uuid.UUID        `json:"id"`
+	Name        string           `json:"name"`
+	Description pgtype.Text      `json:"description"`
+	Price       pgtype.Numeric   `json:"price"`
+	Discount    pgtype.Numeric   `json:"discount"`
+	CategoryID  pgtype.UUID      `json:"category_id"`
+	IsActive    bool             `json:"is_active"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+}
+
+type ProductImage struct {
+	ID        uuid.UUID        `json:"id"`
+	ProductID uuid.UUID        `json:"product_id"`
+	Url       string           `json:"url"`
+	IsPrimary bool             `json:"is_primary"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type ProductVariant struct {
+	ID        uuid.UUID        `json:"id"`
+	ProductID uuid.UUID        `json:"product_id"`
+	Label     string           `json:"label"`
+	Color     pgtype.Text      `json:"color"`
+	Stock     int32            `json:"stock"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
 type Session struct {
 	ID           uuid.UUID        `json:"id"`
-	UserID       uuid.UUID        `json:"user_id"`
 	Phone        string           `json:"phone"`
 	RefreshToken string           `json:"refresh_token"`
 	UserAgent    pgtype.Text      `json:"user_agent"`
@@ -26,8 +63,7 @@ type Session struct {
 
 type User struct {
 	ID        uuid.UUID        `json:"id"`
-	FirstName string           `json:"first_name"`
-	LastName  string           `json:"last_name"`
+	FullName  string           `json:"full_name"`
 	Phone     string           `json:"phone"`
 	Password  string           `json:"password"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`

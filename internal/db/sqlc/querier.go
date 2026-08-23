@@ -12,13 +12,30 @@ import (
 
 type Querier interface {
 	BlockSession(ctx context.Context, id uuid.UUID) (Session, error)
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
+	CreateProductImage(ctx context.Context, arg CreateProductImageParams) (ProductImage, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateVariant(ctx context.Context, arg CreateVariantParams) (ProductVariant, error)
+	DeleteCategory(ctx context.Context, id uuid.UUID) error
+	DeleteProduct(ctx context.Context, id uuid.UUID) error
+	DeleteProductImage(ctx context.Context, id uuid.UUID) error
 	DeleteSession(ctx context.Context, id uuid.UUID) error
+	DeleteVariant(ctx context.Context, id uuid.UUID) error
+	GetAllCategories(ctx context.Context) ([]Category, error)
+	GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error)
 	GetAllUsers(ctx context.Context) ([]User, error)
+	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)
+	GetProductImages(ctx context.Context, productID uuid.UUID) ([]ProductImage, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
+	GetVariantByID(ctx context.Context, id uuid.UUID) (ProductVariant, error)
+	GetVariantsByProductID(ctx context.Context, productID uuid.UUID) ([]ProductVariant, error)
+	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
+	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariant, error)
 }
 
 var _ Querier = (*Queries)(nil)
