@@ -28,6 +28,9 @@ func main() {
 	if config.APP_DEBUG == "true" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
+
+	// ssl is for encrypting 
+	
 	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
 		config.DB_USERNAME,
 		config.DB_PASSWORD,
