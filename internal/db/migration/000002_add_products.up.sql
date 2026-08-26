@@ -28,10 +28,11 @@ CREATE TABLE product_variants (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO categories (name) VALUES
-    ('دمبل و هالتر'),
-    ('تردمیل و دوچرخه'),
-    ('لباس ورزشی'),
-    ('کفش ورزشی'),
-    ('مکمل ورزشی'),
-    ('دستگاه بدنسازی');
+INSERT INTO categories (name)
+VALUES
+    ('فوتبال'),
+    ('کشتی'),
+    ('والیبال'),
+    ('ورزش های راکتی'),
+    ('تمرین و هوازی'),
+    ('اکسسوری');

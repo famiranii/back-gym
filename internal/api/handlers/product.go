@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
 	"github.com/famiranii/back-gym.git/internal/token"
 	"github.com/famiranii/back-gym.git/internal/util"
@@ -141,12 +143,44 @@ func (h *ProductHandler) GetAllProducts(c fiber.Ctx) error {
 	limit := int32(10)
 	offset := int32(0)
 
-	products, err := h.Store.GetAllProducts(c.Context(), db.GetAllProductsParams{
-		Limit:  limit,
-		Offset: offset,
-	})
+	if value := c.Query("limit"); value != "" {
+		if parsed, err := strconv.ParseInt(value, 10, 32); err == nil {
+			limit = int32(parsed)
+		}
+	}
+
+	if value := c.Query("offset"); value != "" {
+		if parsed, err := strconv.ParseInt(value, 10, 32); err == nil {
+			offset = int32(parsed)
+		}
+	}
+
+	if limit <= 0 {
+		limit = 10
+	}
+
+	if limit > 100 {
+		limit = 100
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	products, err := h.Store.GetAllProducts(
+		c.Context(),
+		db.GetAllProductsParams{
+			Limit:  limit,
+			Offset: offset,
+		},
+	)
+
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{
+				"error": err.Error(),
+			},
+		)
 	}
 
 	return c.JSON(products)

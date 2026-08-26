@@ -62,10 +62,19 @@ func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAllProducts = `-- name: GetAllProducts :many
-SELECT p.id, p.name, p.description, p.price, p.discount, p.category_id, p.is_active, p.created_at, p.updated_at, c.name as category_name,
-  (SELECT url FROM product_images 
-   WHERE product_id = p.id AND is_primary = true 
-   LIMIT 1) as primary_image
+SELECT
+    p.id, p.name, p.description, p.price, p.discount, p.category_id, p.is_active, p.created_at, p.updated_at,
+    c.name AS category_name,
+    COALESCE(
+        (
+            SELECT url
+            FROM product_images
+            WHERE product_id = p.id
+              AND is_primary = true
+            LIMIT 1
+        ),
+        ''
+    ) AS primary_image
 FROM products p
 LEFT JOIN categories c ON c.id = p.category_id
 WHERE p.is_active = true
@@ -89,7 +98,7 @@ type GetAllProductsRow struct {
 	CreatedAt    pgtype.Timestamp `json:"created_at"`
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 	CategoryName pgtype.Text      `json:"category_name"`
-	PrimaryImage string           `json:"primary_image"`
+	PrimaryImage interface{}      `json:"primary_image"`
 }
 
 func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error) {
