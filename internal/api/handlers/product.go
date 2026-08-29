@@ -125,18 +125,19 @@ func (h *ProductHandler) UpdateProduct(c fiber.Ctx) error {
 	return c.JSON(product)
 }
 
+// GetProduct — محصول کامل با تصاویر و variants
 func (h *ProductHandler) GetProduct(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id"})
 	}
 
-	product, err := h.Store.GetProductByID(c.Context(), id)
+	detail, err := h.Store.GetProductDetail(c.Context(), id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "product not found"})
 	}
 
-	return c.JSON(product)
+	return c.JSON(detail)
 }
 
 func (h *ProductHandler) GetAllProducts(c fiber.Ctx) error {
@@ -155,32 +156,19 @@ func (h *ProductHandler) GetAllProducts(c fiber.Ctx) error {
 		}
 	}
 
-	if limit <= 0 {
+	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
-
-	if limit > 100 {
-		limit = 100
-	}
-
 	if offset < 0 {
 		offset = 0
 	}
 
-	products, err := h.Store.GetAllProducts(
-		c.Context(),
-		db.GetAllProductsParams{
-			Limit:  limit,
-			Offset: offset,
-		},
-	)
-
+	products, err := h.Store.GetAllProducts(c.Context(), db.GetAllProductsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(
-			fiber.Map{
-				"error": err.Error(),
-			},
-		)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.JSON(products)
@@ -192,8 +180,7 @@ func (h *ProductHandler) DeleteProduct(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id"})
 	}
 
-	err = h.Store.DeleteProduct(c.Context(), id)
-	if err != nil {
+	if err := h.Store.DeleteProduct(c.Context(), id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
