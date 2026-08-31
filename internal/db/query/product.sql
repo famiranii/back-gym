@@ -4,14 +4,19 @@ VALUES ($1, $2, $3, $4, $5, $6)
 RETURNING *;
 
 -- name: GetProductByID :one
-SELECT * FROM products
-WHERE id = $1;
+SELECT
+    p.*,
+    p.price - (p.price * p.discount / 100) AS final_price
+FROM products p
+WHERE p.id = $1;
+
 
 -- name: GetAllProducts :many
 SELECT p.*, c.name as category_name,
   (SELECT url FROM product_images 
    WHERE product_id = p.id AND is_primary = true 
-   LIMIT 1) as primary_image
+   LIMIT 1) as primary_image,
+   p.price - (p.price * p.discount / 100) AS final_price
 FROM products p
 LEFT JOIN categories c ON c.id = p.category_id
 WHERE p.is_active = true

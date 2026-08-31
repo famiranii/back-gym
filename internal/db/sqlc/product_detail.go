@@ -11,6 +11,7 @@ type ProductDetailResponse struct {
 	Description   pgtype.Text      `json:"description"`
 	Price         pgtype.Numeric   `json:"price"`
 	Discount      pgtype.Numeric   `json:"discount"`
+	FinalPrice    int32            `json:"final_price"`
 	CategoryID    pgtype.UUID      `json:"category_id"`
 	CategoryName  string           `json:"category_name"`
 	IsActive      bool             `json:"is_active"`

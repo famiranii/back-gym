@@ -10,9 +10,9 @@ import (
 
 func SetupRoutes(server *api.Server) error {
 	server.App.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"http://localhost:3001"},
+		AllowOrigins: []string{"http://localhost:3000"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 	}))
 
 	auth := middleware.AuthMiddleware(server.TokenMaker)
@@ -67,10 +67,10 @@ func SetupRoutes(server *api.Server) error {
 
 	// Cart
 	cart := handlers.NewCartHandler(server.Store)
-	server.App.Get("/cart", auth, cart.GetCart)
-	server.App.Post("/cart", auth, cart.AddToCart)
-	server.App.Patch("/cart/:id", auth, cart.UpdateCartItem)
-	server.App.Delete("/cart/:id", auth, cart.RemoveFromCart)
-	server.App.Delete("/cart", auth, cart.ClearCart)
+	server.App.Get("/cart", auth, cart.GetCart) //done
+	server.App.Post("/cart", auth, cart.AddToCart) //done
+	server.App.Patch("/cart/:id", auth, cart.UpdateCartItem) //done
+	server.App.Delete("/cart/:id", auth, cart.RemoveFromCart) //done
+	server.App.Delete("/cart", auth, cart.ClearCart) // done
 	return nil
 }

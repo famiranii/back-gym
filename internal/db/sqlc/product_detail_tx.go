@@ -82,6 +82,7 @@ func (s *Store) GetProductDetail(ctx context.Context, id uuid.UUID) (ProductDeta
 		Description:   product.Description,
 		Price:         product.Price,
 		Discount:      product.Discount,
+		FinalPrice:    product.FinalPrice,
 		CategoryID:    product.CategoryID,
 		CategoryName:  categoryName,
 		IsActive:      product.IsActive,

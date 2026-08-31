@@ -34,7 +34,7 @@ type Querier interface {
 	GetAverageRating(ctx context.Context, productID uuid.UUID) (float64, error)
 	GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
-	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)
+	GetProductByID(ctx context.Context, id uuid.UUID) (GetProductByIDRow, error)
 	GetProductImages(ctx context.Context, productID uuid.UUID) ([]ProductImage, error)
 	GetReviewsByProductID(ctx context.Context, productID uuid.UUID) ([]GetReviewsByProductIDRow, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)

@@ -65,7 +65,8 @@ const getAllProducts = `-- name: GetAllProducts :many
 SELECT p.id, p.name, p.description, p.price, p.discount, p.category_id, p.is_active, p.created_at, p.updated_at, c.name as category_name,
   (SELECT url FROM product_images 
    WHERE product_id = p.id AND is_primary = true 
-   LIMIT 1) as primary_image
+   LIMIT 1) as primary_image,
+   p.price - (p.price * p.discount / 100) AS final_price
 FROM products p
 LEFT JOIN categories c ON c.id = p.category_id
 WHERE p.is_active = true
@@ -90,6 +91,7 @@ type GetAllProductsRow struct {
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
 	CategoryName pgtype.Text      `json:"category_name"`
 	PrimaryImage string           `json:"primary_image"`
+	FinalPrice   int32            `json:"final_price"`
 }
 
 func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error) {
@@ -113,6 +115,7 @@ func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) 
 			&i.UpdatedAt,
 			&i.CategoryName,
 			&i.PrimaryImage,
+			&i.FinalPrice,
 		); err != nil {
 			return nil, err
 		}
@@ -125,13 +128,29 @@ func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) 
 }
 
 const getProductByID = `-- name: GetProductByID :one
-SELECT id, name, description, price, discount, category_id, is_active, created_at, updated_at FROM products
-WHERE id = $1
+SELECT
+    p.id, p.name, p.description, p.price, p.discount, p.category_id, p.is_active, p.created_at, p.updated_at,
+    p.price - (p.price * p.discount / 100) AS final_price
+FROM products p
+WHERE p.id = $1
 `
 
-func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (Product, error) {
+type GetProductByIDRow struct {
+	ID          uuid.UUID        `json:"id"`
+	Name        string           `json:"name"`
+	Description pgtype.Text      `json:"description"`
+	Price       pgtype.Numeric   `json:"price"`
+	Discount    pgtype.Numeric   `json:"discount"`
+	CategoryID  pgtype.UUID      `json:"category_id"`
+	IsActive    bool             `json:"is_active"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	FinalPrice  int32            `json:"final_price"`
+}
+
+func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (GetProductByIDRow, error) {
 	row := q.db.QueryRow(ctx, getProductByID, id)
-	var i Product
+	var i GetProductByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -142,6 +161,7 @@ func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (Product, er
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.FinalPrice,
 	)
 	return i, err
 }
