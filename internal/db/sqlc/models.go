@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type CartItem struct {
+	ID        uuid.UUID        `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	VariantID uuid.UUID        `json:"variant_id"`
+	Quantity  int32            `json:"quantity"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
 type Category struct {
 	ID        uuid.UUID        `json:"id"`
 	Name      string           `json:"name"`
@@ -49,6 +58,16 @@ type ProductVariant struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type Review struct {
+	ID        int64              `json:"id"`
+	ProductID uuid.UUID          `json:"product_id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Rating    pgtype.Int2        `json:"rating"`
+	Body      pgtype.Text        `json:"body"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Session struct {
 	ID           uuid.UUID        `json:"id"`
 	Phone        string           `json:"phone"`
@@ -68,4 +87,19 @@ type User struct {
 	Password  string           `json:"password"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type UserAddress struct {
+	ID         uuid.UUID        `json:"id"`
+	UserID     uuid.UUID        `json:"user_id"`
+	Title      pgtype.Text      `json:"title"`
+	Province   pgtype.Text      `json:"province"`
+	City       pgtype.Text      `json:"city"`
+	Address    pgtype.Text      `json:"address"`
+	PostalCode pgtype.Text      `json:"postal_code"`
+	Lat        pgtype.Numeric   `json:"lat"`
+	Lng        pgtype.Numeric   `json:"lng"`
+	IsDefault  bool             `json:"is_default"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
 }

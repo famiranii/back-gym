@@ -25,7 +25,8 @@ type CreateUserRequest struct {
 	Password    string `json:"password" validate:"required"`
 }
 type userResponse struct {
-	FullName string           `json:"full_name"`
+	ID        uuid.UUID        `json:"id"`
+	FullName  string           `json:"full_name"`
 	Phone     string           `json:"phone"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
@@ -42,6 +43,7 @@ var validate = validator.New()
 
 func NewUserResponse(user db.User) userResponse {
 	return userResponse{
+		ID:        user.ID,
 		FullName:  user.FullName,
 		Phone:     user.Phone,
 		CreatedAt: user.CreatedAt,
@@ -63,29 +65,42 @@ type LoginUserResponse struct {
 }
 
 func (u *UserHandler) RegisterUser(c fiber.Ctx) error {
-	var req LoginUserRequest
-	if err := c.Bind().Body(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-	}
-	if err := validate.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	var req CreateUserRequest
 
+	if err := c.Bind().Body(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
+
+	if err := validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
 	hashedPassword, err := util.HashPassword(req.Password)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
+
 	arg := db.CreateUserParams{
+		FullName: req.FullName,
 		Phone:    req.PhoneNumber,
 		Password: hashedPassword,
 	}
+
 	user, err := u.Store.CreateUser(c.Context(), arg)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
-
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
+
 	rsp := NewUserResponse(user)
+
 	return c.Status(fiber.StatusCreated).JSON(rsp)
 }
 
@@ -148,4 +163,42 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 	}
 	return c.Status(fiber.StatusOK).JSON(rsp)
 
+}
+
+// internal/handlers/user_handler.go — اضافه کن به فایل فعلی
+
+// GET /users/:id
+func (u *UserHandler) GetUser(c fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id"})
+	}
+
+	payload := c.Locals("payload").(*token.Payload)
+
+	user, err := u.Store.GetUserByPhone(c.Context(), payload.Phone)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "user not found"})
+	}
+
+	if user.ID != id {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "access denied"})
+	}
+
+	return c.JSON(NewUserResponse(user))
+}
+
+// GET /users
+func (u *UserHandler) GetAllUsers(c fiber.Ctx) error {
+	users, err := u.Store.GetAllUsers(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	rsp := make([]userResponse, len(users))
+	for i, user := range users {
+		rsp[i] = NewUserResponse(user)
+	}
+
+	return c.JSON(rsp)
 }

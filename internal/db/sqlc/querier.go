@@ -11,31 +11,47 @@ import (
 )
 
 type Querier interface {
+	AddToCart(ctx context.Context, arg AddToCartParams) (CartItem, error)
 	BlockSession(ctx context.Context, id uuid.UUID) (Session, error)
+	ClearCart(ctx context.Context, userID uuid.UUID) error
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductImage(ctx context.Context, arg CreateProductImageParams) (ProductImage, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateUserAddress(ctx context.Context, arg CreateUserAddressParams) (UserAddress, error)
 	CreateVariant(ctx context.Context, arg CreateVariantParams) (ProductVariant, error)
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteProductImage(ctx context.Context, id uuid.UUID) error
+	DeleteReview(ctx context.Context, arg DeleteReviewParams) error
 	DeleteSession(ctx context.Context, id uuid.UUID) error
+	DeleteUserAddress(ctx context.Context, arg DeleteUserAddressParams) error
 	DeleteVariant(ctx context.Context, id uuid.UUID) error
 	GetAllCategories(ctx context.Context) ([]Category, error)
 	GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error)
 	GetAllUsers(ctx context.Context) ([]User, error)
+	GetAverageRating(ctx context.Context, productID uuid.UUID) (float64, error)
+	GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (Product, error)
 	GetProductImages(ctx context.Context, productID uuid.UUID) ([]ProductImage, error)
+	GetReviewsByProductID(ctx context.Context, productID uuid.UUID) ([]GetReviewsByProductIDRow, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
+	// internal/db/query/user_address.sql
+	GetUserAddresses(ctx context.Context, userID uuid.UUID) ([]UserAddress, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
 	GetVariantByID(ctx context.Context, id uuid.UUID) (ProductVariant, error)
 	GetVariantsByProductID(ctx context.Context, productID uuid.UUID) ([]ProductVariant, error)
+	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
+	SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) error
+	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
+	UpdateUserAddress(ctx context.Context, arg UpdateUserAddressParams) (UserAddress, error)
 	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariant, error)
+	// internal/db/query/review.sql
+	UpsertReview(ctx context.Context, arg UpsertReviewParams) (Review, error)
 }
 
 var _ Querier = (*Queries)(nil)

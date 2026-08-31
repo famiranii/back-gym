@@ -9,13 +9,11 @@ import (
 )
 
 func (s *Store) GetProductDetail(ctx context.Context, id uuid.UUID) (ProductDetailResponse, error) {
-	// ── ۱. محصول پایه ─────────────────────────────────────────────
 	product, err := s.GetProductByID(ctx, id)
 	if err != nil {
 		return ProductDetailResponse{}, err
 	}
 
-	// ── ۲. category ───────────────────────────────────────────────
 	categoryName := ""
 	if product.CategoryID.Valid {
 		catID := uuid.UUID(product.CategoryID.Bytes)
@@ -25,16 +23,16 @@ func (s *Store) GetProductDetail(ctx context.Context, id uuid.UUID) (ProductDeta
 		}
 	}
 
-	// ── ۳. images و variants موازی ────────────────────────────────
 	var (
-		wg       sync.WaitGroup
-		mu       sync.Mutex
-		fetchErr error
-		images   []ProductImage
-		variants []ProductVariant
+		wg            sync.WaitGroup
+		mu            sync.Mutex
+		fetchErr      error
+		images        []ProductImage
+		variants      []ProductVariant
+		averageRating float64
 	)
 
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
@@ -60,26 +58,38 @@ func (s *Store) GetProductDetail(ctx context.Context, id uuid.UUID) (ProductDeta
 		variants = result
 	}()
 
+	go func() {
+		defer wg.Done()
+		result, err := s.GetAverageRating(ctx, id)
+		mu.Lock()
+		defer mu.Unlock()
+		if err != nil || result == 0 {
+			averageRating = 5
+			return
+		}
+		averageRating = result
+	}()
+
 	wg.Wait()
 
 	if fetchErr != nil {
 		return ProductDetailResponse{}, fetchErr
 	}
 
-	// ── ۴. خروجی ─────────────────────────────────────────────────
 	return ProductDetailResponse{
-		ID:           product.ID,
-		Name:         product.Name,
-		Description:  product.Description,
-		Price:        product.Price,
-		Discount:     product.Discount,
-		CategoryID:   product.CategoryID,
-		CategoryName: categoryName,
-		IsActive:     product.IsActive,
-		CreatedAt:    product.CreatedAt,
-		UpdatedAt:    product.UpdatedAt,
-		Images:       nullSlice(images),
-		Variants:     nullSlice(variants),
+		ID:            product.ID,
+		Name:          product.Name,
+		Description:   product.Description,
+		Price:         product.Price,
+		Discount:      product.Discount,
+		CategoryID:    product.CategoryID,
+		CategoryName:  categoryName,
+		IsActive:      product.IsActive,
+		CreatedAt:     product.CreatedAt,
+		UpdatedAt:     product.UpdatedAt,
+		Images:        nullSlice(images),
+		Variants:      nullSlice(variants),
+		AverageRating: averageRating,
 	}, nil
 }
 
