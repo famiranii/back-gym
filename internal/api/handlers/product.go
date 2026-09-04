@@ -36,15 +36,6 @@ type CreateProductRequest struct {
 	Images      []db.CreateProductImage   `json:"images"`
 }
 
-type UpdateProductRequest struct {
-	Name        string  `json:"name" validate:"required"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price" validate:"required,gt=0"`
-	Discount    float64 `json:"discount"`
-	CategoryID  string  `json:"category_id"`
-	IsActive    bool    `json:"is_active"`
-}
-
 func (h *ProductHandler) CreateProduct(c fiber.Ctx) error {
 	var req CreateProductRequest
 	if err := c.Bind().Body(&req); err != nil {
@@ -80,6 +71,28 @@ func (h *ProductHandler) CreateProduct(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(result)
 }
 
+type UpdateImageRequest struct {
+	ID        string `json:"id"`
+	URL       string `json:"url" validate:"required"`
+	IsPrimary bool   `json:"is_primary"`
+}
+type UpdateVariantRequests struct {
+	ID    string `json:"id"` // اگه خالی بود → insert، اگه داشت → update
+	Label string `json:"label" validate:"required"`
+	Color string `json:"color"`
+	Stock int32  `json:"stock"`
+}
+type UpdateProductRequest struct {
+	Name        string                  `json:"name" validate:"required"`
+	Description string                  `json:"description"`
+	Price       float64                 `json:"price" validate:"required,gt=0"`
+	Discount    float64                 `json:"discount"`
+	CategoryID  string                  `json:"category_id"`
+	IsActive    bool                    `json:"is_active"`
+	Variants    []UpdateVariantRequests `json:"variants"`
+	Images      []UpdateImageRequest    `json:"images"`
+}
+
 func (h *ProductHandler) UpdateProduct(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -95,10 +108,14 @@ func (h *ProductHandler) UpdateProduct(c fiber.Ctx) error {
 	}
 
 	var price pgtype.Numeric
-	price.Scan(req.Price)
+	if err := price.Scan(strconv.FormatFloat(req.Price, 'f', -1, 64)); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid price"})
+	}
 
 	var discount pgtype.Numeric
-	discount.Scan(req.Discount)
+	if err := discount.Scan(strconv.FormatFloat(req.Discount, 'f', -1, 64)); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid discount"})
+	}
 
 	arg := db.UpdateProductParams{
 		ID:          id,
@@ -120,6 +137,86 @@ func (h *ProductHandler) UpdateProduct(c fiber.Ctx) error {
 	product, err := h.Store.UpdateProduct(c.Context(), arg)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	// variants
+	existingVariants, err := h.Store.GetVariantsByProductID(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	keepVariantIDs := map[uuid.UUID]bool{}
+	for _, v := range req.Variants {
+		if v.ID != "" {
+			if vid, err := uuid.Parse(v.ID); err == nil {
+				keepVariantIDs[vid] = true
+			}
+		}
+	}
+
+	for _, ev := range existingVariants {
+		if !keepVariantIDs[ev.ID] {
+			_ = h.Store.DeleteVariant(c.Context(), ev.ID)
+		}
+	}
+
+	for _, v := range req.Variants {
+		if v.ID == "" {
+			_, err = h.Store.CreateVariant(c.Context(), db.CreateVariantParams{
+				ProductID: id,
+				Label:     v.Label,
+				Color:     pgtype.Text{String: v.Color, Valid: v.Color != ""},
+				Stock:     v.Stock,
+			})
+		} else {
+			variantID, parseErr := uuid.Parse(v.ID)
+			if parseErr != nil {
+				continue
+			}
+			_, err = h.Store.UpdateVariant(c.Context(), db.UpdateVariantParams{
+				ID:    variantID,
+				Label: v.Label,
+				Color: pgtype.Text{String: v.Color, Valid: v.Color != ""},
+				Stock: v.Stock,
+			})
+		}
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		}
+	}
+
+	// images
+	existingImages, err := h.Store.GetProductImages(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	keepImageIDs := map[uuid.UUID]bool{}
+	for _, img := range req.Images {
+		if img.ID != "" {
+			if imgID, err := uuid.Parse(img.ID); err == nil {
+				keepImageIDs[imgID] = true
+			}
+		}
+	}
+
+	for _, ei := range existingImages {
+		if !keepImageIDs[ei.ID] {
+			_ = h.Store.DeleteProductImage(c.Context(), ei.ID)
+		}
+	}
+
+	for _, img := range req.Images {
+		if img.ID == "" {
+			_, err = h.Store.CreateProductImage(c.Context(), db.CreateProductImageParams{
+				ProductID: id,
+				Url:       img.URL,
+				IsPrimary: img.IsPrimary,
+			})
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+			}
+		}
 	}
 
 	return c.JSON(product)

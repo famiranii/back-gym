@@ -26,6 +26,7 @@ type Category struct {
 	ParentID  pgtype.UUID      `json:"parent_id"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	ImageUrl  pgtype.Text      `json:"image_url"`
 }
 
 type Product struct {

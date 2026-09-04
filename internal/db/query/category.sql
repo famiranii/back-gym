@@ -1,14 +1,14 @@
 -- name: GetAllCategories :many
-SELECT * FROM categories
+SELECT id, name, parent_id, image_url, created_at, updated_at FROM categories
 ORDER BY name;
 
 -- name: GetCategoryByID :one
-SELECT * FROM categories
+SELECT id, name, parent_id, image_url, created_at, updated_at FROM categories
 WHERE id = $1;
 
 -- name: CreateCategory :one
-INSERT INTO categories (name, parent_id)
-VALUES ($1, $2)
+INSERT INTO categories (name, parent_id, image_url)
+VALUES (@name, @parent_id, @image_url)
 RETURNING *;
 
 -- name: DeleteCategory :exec

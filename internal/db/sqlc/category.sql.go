@@ -13,18 +13,19 @@ import (
 )
 
 const createCategory = `-- name: CreateCategory :one
-INSERT INTO categories (name, parent_id)
-VALUES ($1, $2)
-RETURNING id, name, parent_id, created_at, updated_at
+INSERT INTO categories (name, parent_id, image_url)
+VALUES ($1, $2, $3)
+RETURNING id, name, parent_id, created_at, updated_at, image_url
 `
 
 type CreateCategoryParams struct {
 	Name     string      `json:"name"`
 	ParentID pgtype.UUID `json:"parent_id"`
+	ImageUrl pgtype.Text `json:"image_url"`
 }
 
 func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
-	row := q.db.QueryRow(ctx, createCategory, arg.Name, arg.ParentID)
+	row := q.db.QueryRow(ctx, createCategory, arg.Name, arg.ParentID, arg.ImageUrl)
 	var i Category
 	err := row.Scan(
 		&i.ID,
@@ -32,6 +33,7 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		&i.ParentID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ImageUrl,
 	)
 	return i, err
 }
@@ -47,23 +49,33 @@ func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAllCategories = `-- name: GetAllCategories :many
-SELECT id, name, parent_id, created_at, updated_at FROM categories
+SELECT id, name, parent_id, image_url, created_at, updated_at FROM categories
 ORDER BY name
 `
 
-func (q *Queries) GetAllCategories(ctx context.Context) ([]Category, error) {
+type GetAllCategoriesRow struct {
+	ID        uuid.UUID        `json:"id"`
+	Name      string           `json:"name"`
+	ParentID  pgtype.UUID      `json:"parent_id"`
+	ImageUrl  pgtype.Text      `json:"image_url"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) GetAllCategories(ctx context.Context) ([]GetAllCategoriesRow, error) {
 	rows, err := q.db.Query(ctx, getAllCategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Category{}
+	items := []GetAllCategoriesRow{}
 	for rows.Next() {
-		var i Category
+		var i GetAllCategoriesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.ParentID,
+			&i.ImageUrl,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -78,17 +90,27 @@ func (q *Queries) GetAllCategories(ctx context.Context) ([]Category, error) {
 }
 
 const getCategoryByID = `-- name: GetCategoryByID :one
-SELECT id, name, parent_id, created_at, updated_at FROM categories
+SELECT id, name, parent_id, image_url, created_at, updated_at FROM categories
 WHERE id = $1
 `
 
-func (q *Queries) GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error) {
+type GetCategoryByIDRow struct {
+	ID        uuid.UUID        `json:"id"`
+	Name      string           `json:"name"`
+	ParentID  pgtype.UUID      `json:"parent_id"`
+	ImageUrl  pgtype.Text      `json:"image_url"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+func (q *Queries) GetCategoryByID(ctx context.Context, id uuid.UUID) (GetCategoryByIDRow, error) {
 	row := q.db.QueryRow(ctx, getCategoryByID, id)
-	var i Category
+	var i GetCategoryByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.ParentID,
+		&i.ImageUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

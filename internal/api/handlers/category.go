@@ -26,6 +26,7 @@ func NewCategoryHandler(store *db.Store, tokenMaker token.Maker, config util.Con
 type CreateCategoryRequest struct {
 	Name     string `json:"name" validate:"required"`
 	ParentID string `json:"parent_id"`
+	ImageUrl string `json:"image_url"`
 }
 
 func (h *CategoryHandler) GetAllCategories(c fiber.Ctx) error {
@@ -59,7 +60,8 @@ func (h *CategoryHandler) CreateCategory(c fiber.Ctx) error {
 	}
 
 	arg := db.CreateCategoryParams{
-		Name: req.Name,
+		Name:     req.Name,
+		ImageUrl: pgtype.Text{String: req.ImageUrl, Valid: req.ImageUrl != ""},
 	}
 
 	if req.ParentID != "" {

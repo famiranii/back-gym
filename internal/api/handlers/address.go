@@ -3,6 +3,8 @@
 package handlers
 
 import (
+	"fmt"
+
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -47,12 +49,17 @@ func (h *AddressHandler) GetAddresses(c fiber.Ctx) error {
 func (h *AddressHandler) CreateAddress(c fiber.Ctx) error {
 	userID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user_id"})
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "invalid user_id"},
+		)
 	}
 
 	var req AddressRequest
+
 	if err := c.Bind().Body(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": err.Error()},
+		)
 	}
 
 	arg := db.CreateUserAddressParams{
@@ -67,16 +74,29 @@ func (h *AddressHandler) CreateAddress(c fiber.Ctx) error {
 		IsDefault:  req.IsDefault,
 	}
 
+	// Latitude
 	if req.Lat != 0 {
-		arg.Lat.Scan(req.Lat)
+		if err := arg.Lat.Scan(fmt.Sprintf("%.6f", req.Lat)); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				fiber.Map{"error": "invalid latitude"},
+			)
+		}
 	}
+
+	// Longitude
 	if req.Lng != 0 {
-		arg.Lng.Scan(req.Lng)
+		if err := arg.Lng.Scan(fmt.Sprintf("%.6f", req.Lng)); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				fiber.Map{"error": "invalid longitude"},
+			)
+		}
 	}
 
 	address, err := h.Store.CreateUserAddress(c.Context(), arg)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{"error": err.Error()},
+		)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(address)
@@ -86,17 +106,24 @@ func (h *AddressHandler) CreateAddress(c fiber.Ctx) error {
 func (h *AddressHandler) UpdateAddress(c fiber.Ctx) error {
 	userID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid user_id"})
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "invalid user_id"},
+		)
 	}
 
 	addrID, err := uuid.Parse(c.Params("addr_id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid address_id"})
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "invalid address_id"},
+		)
 	}
 
 	var req AddressRequest
+
 	if err := c.Bind().Body(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": err.Error()},
+		)
 	}
 
 	arg := db.UpdateUserAddressParams{
@@ -112,16 +139,29 @@ func (h *AddressHandler) UpdateAddress(c fiber.Ctx) error {
 		IsDefault:  req.IsDefault,
 	}
 
+	// Latitude
 	if req.Lat != 0 {
-		arg.Lat.Scan(req.Lat)
+		if err := arg.Lat.Scan(fmt.Sprintf("%.6f", req.Lat)); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				fiber.Map{"error": "invalid latitude"},
+			)
+		}
 	}
+
+	// Longitude
 	if req.Lng != 0 {
-		arg.Lng.Scan(req.Lng)
+		if err := arg.Lng.Scan(fmt.Sprintf("%.6f", req.Lng)); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				fiber.Map{"error": "invalid longitude"},
+			)
+		}
 	}
 
 	address, err := h.Store.UpdateUserAddress(c.Context(), arg)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{"error": err.Error()},
+		)
 	}
 
 	return c.JSON(address)
@@ -171,4 +211,37 @@ func (h *AddressHandler) SetDefault(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// GET /users/:id/addresses/:addr_id
+func (h *AddressHandler) GetAddress(c fiber.Ctx) error {
+	userID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "invalid user_id"},
+		)
+	}
+
+	addrID, err := uuid.Parse(c.Params("addr_id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "invalid address_id"},
+		)
+	}
+
+	address, err := h.Store.GetUserAddress(
+		c.Context(),
+		db.GetUserAddressParams{
+			ID:     addrID,
+			UserID: userID,
+		},
+	)
+
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(
+			fiber.Map{"error": "address not found"},
+		)
+	}
+
+	return c.JSON(address)
 }

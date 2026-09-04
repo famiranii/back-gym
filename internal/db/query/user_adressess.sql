@@ -35,3 +35,10 @@ SET
     is_default = (id = @id),
     updated_at = CURRENT_TIMESTAMP
 WHERE user_id = @user_id;
+
+-- name: GetUserAddress :one
+SELECT *
+FROM user_addresses
+WHERE id = @id
+  AND user_id = @user_id
+LIMIT 1;

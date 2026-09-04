@@ -109,6 +109,44 @@ func (q *Queries) GetVariantsByProductID(ctx context.Context, productID uuid.UUI
 	return items, nil
 }
 
+const updateVariant = `-- name: UpdateVariant :one
+UPDATE product_variants
+SET
+    label = $2,
+    color = $3,
+    stock = $4,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, product_id, label, color, stock, created_at, updated_at
+`
+
+type UpdateVariantParams struct {
+	ID    uuid.UUID   `json:"id"`
+	Label string      `json:"label"`
+	Color pgtype.Text `json:"color"`
+	Stock int32       `json:"stock"`
+}
+
+func (q *Queries) UpdateVariant(ctx context.Context, arg UpdateVariantParams) (ProductVariant, error) {
+	row := q.db.QueryRow(ctx, updateVariant,
+		arg.ID,
+		arg.Label,
+		arg.Color,
+		arg.Stock,
+	)
+	var i ProductVariant
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.Label,
+		&i.Color,
+		&i.Stock,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateVariantStock = `-- name: UpdateVariantStock :one
 UPDATE product_variants
 SET stock = $2, updated_at = CURRENT_TIMESTAMP

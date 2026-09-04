@@ -43,6 +43,7 @@ func (q *Queries) GetAverageRating(ctx context.Context, productID uuid.UUID) (fl
 const getReviewsByProductID = `-- name: GetReviewsByProductID :many
 SELECT
     r.id,
+    r.product_id,
     r.user_id,
     u.full_name,
     r.rating,
@@ -57,6 +58,7 @@ ORDER BY r.created_at DESC
 
 type GetReviewsByProductIDRow struct {
 	ID        int64              `json:"id"`
+	ProductID uuid.UUID          `json:"product_id"`
 	UserID    uuid.UUID          `json:"user_id"`
 	FullName  string             `json:"full_name"`
 	Rating    pgtype.Int2        `json:"rating"`
@@ -76,6 +78,7 @@ func (q *Queries) GetReviewsByProductID(ctx context.Context, productID uuid.UUID
 		var i GetReviewsByProductIDRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.ProductID,
 			&i.UserID,
 			&i.FullName,
 			&i.Rating,

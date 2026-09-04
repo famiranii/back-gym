@@ -13,6 +13,7 @@ RETURNING *;
 -- name: GetReviewsByProductID :many
 SELECT
     r.id,
+    r.product_id,
     r.user_id,
     u.full_name,
     r.rating,

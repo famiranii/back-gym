@@ -27,6 +27,13 @@ type CreateVariantRequest struct {
 	Stock int32  `json:"stock" validate:"gte=0"`
 }
 
+type UpdateVariantRequest struct {
+	ID    uuid.UUID `json:"id"`
+	Label string    `json:"label"`
+	Color string    `json:"color"`
+	Stock int32     `json:"stock"`
+}
+
 func (h *VariantHandler) CreateVariant(c fiber.Ctx) error {
 	productID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
