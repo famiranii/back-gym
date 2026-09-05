@@ -10,9 +10,10 @@ import (
 
 func SetupRoutes(server *api.Server) error {
 	server.App.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"http://localhost:3000"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowCredentials: true,
 	}))
 
 	auth := middleware.AuthMiddleware(server.TokenMaker)
@@ -22,6 +23,7 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Post("/register", user.RegisterUser) // done
 	server.App.Post("/login", user.LoginUser)       // done
 	server.App.Get("/users", user.GetAllUsers)
+	server.App.Get("/users/me", auth, user.GetMe)
 	server.App.Get("/users/:id", auth, user.GetUser)
 
 	// Products
@@ -73,5 +75,17 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Patch("/cart/:id", auth, cart.UpdateCartItem)  //done
 	server.App.Delete("/cart/:id", auth, cart.RemoveFromCart) //done
 	server.App.Delete("/cart", auth, cart.ClearCart)          // done
+
+	// Shipping
+	shipping := handlers.NewShippingHandler(server.Store)
+	server.App.Get("/shipping-cost", shipping.GetShippingCost)
+	server.App.Put("/admin/shipping-cost", auth, shipping.UpdateShippingCost)
+
+	// Orders
+	order := handlers.NewOrderHandler(server.Store)
+	server.App.Post("/orders", auth, order.CreateOrder)
+	server.App.Get("/orders", auth, order.GetMyOrders)
+	server.App.Get("/orders/:id", auth, order.GetOrderDetail)
+	server.App.Patch("/orders/:id/status", auth, order.UpdateOrderStatus)
 	return nil
 }

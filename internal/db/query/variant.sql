@@ -31,3 +31,8 @@ SET
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
 RETURNING *;
+
+-- name: DecreaseVariantStock :exec
+UPDATE product_variants
+SET stock = stock - $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND stock >= $2;

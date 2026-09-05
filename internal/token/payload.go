@@ -17,14 +17,14 @@ var (
 // Payload contains the payload data of the token
 type Payload struct {
 	ID        uuid.UUID `json:"id"`
-	Phone  string    `json:"phone"`
+	UserID    uuid.UUID `json:"user_id"`
+	Phone     string    `json:"phone"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expired_at"`
 	jwt.RegisteredClaims
 }
 
-// NewPayload creates a new token payload with a specific phone and duration
-func NewPayload(phone string, duration time.Duration) (*Payload, error) {
+func NewPayload(phone string, userID uuid.UUID, duration time.Duration) (*Payload, error) {
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
@@ -33,7 +33,8 @@ func NewPayload(phone string, duration time.Duration) (*Payload, error) {
 	now := time.Now()
 	payload := &Payload{
 		ID:        tokenID,
-		Phone:  phone,
+		UserID:    userID,
+		Phone:     phone,
 		IssuedAt:  now,
 		ExpiredAt: now.Add(duration),
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -41,7 +42,6 @@ func NewPayload(phone string, duration time.Duration) (*Payload, error) {
 			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
-
 	return payload, nil
 }
 

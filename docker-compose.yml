@@ -20,7 +20,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@gmial.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "6060:80"
+      - "7070:80"
     depends_on:
       - postgres
 

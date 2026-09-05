@@ -15,12 +15,15 @@ type Querier interface {
 	BlockSession(ctx context.Context, id uuid.UUID) (Session, error)
 	ClearCart(ctx context.Context, userID uuid.UUID) error
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
+	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductImage(ctx context.Context, arg CreateProductImageParams) (ProductImage, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserAddress(ctx context.Context, arg CreateUserAddressParams) (UserAddress, error)
 	CreateVariant(ctx context.Context, arg CreateVariantParams) (ProductVariant, error)
+	DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteProductImage(ctx context.Context, id uuid.UUID) error
@@ -34,10 +37,14 @@ type Querier interface {
 	GetAverageRating(ctx context.Context, productID uuid.UUID) (float64, error)
 	GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (GetCategoryByIDRow, error)
+	GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
+	GetOrderItems(ctx context.Context, orderID uuid.UUID) ([]GetOrderItemsRow, error)
+	GetOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (GetProductByIDRow, error)
 	GetProductImages(ctx context.Context, productID uuid.UUID) ([]ProductImage, error)
 	GetReviewsByProductID(ctx context.Context, productID uuid.UUID) ([]GetReviewsByProductIDRow, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
+	GetShippingCost(ctx context.Context) (int64, error)
 	GetUserAddress(ctx context.Context, arg GetUserAddressParams) (UserAddress, error)
 	// internal/db/query/user_address.sql
 	GetUserAddresses(ctx context.Context, userID uuid.UUID) ([]UserAddress, error)
@@ -48,7 +55,9 @@ type Querier interface {
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) error
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)
+	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
+	UpdateShippingCost(ctx context.Context, cost int64) (ShippingSetting, error)
 	UpdateUserAddress(ctx context.Context, arg UpdateUserAddressParams) (UserAddress, error)
 	UpdateVariant(ctx context.Context, arg UpdateVariantParams) (ProductVariant, error)
 	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariant, error)

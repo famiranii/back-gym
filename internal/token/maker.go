@@ -1,12 +1,12 @@
 package token
 
-import "time"
+import (
+	"time"
 
-// Maker is an interface for managing tokens
+	"github.com/google/uuid"
+)
+
 type Maker interface {
-	// CreateToken creates a new token for a specific phone number and duration
-	CreateToken(phone string, duration time.Duration) (string, *Payload, error)
-
-	// VerifyToken checks if the token is valid or not
+	CreateToken(phone string, userID uuid.UUID, duration time.Duration) (string, *Payload, error)
 	VerifyToken(token string) (*Payload, error)
 }

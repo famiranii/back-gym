@@ -29,6 +29,33 @@ type Category struct {
 	ImageUrl  pgtype.Text      `json:"image_url"`
 }
 
+type Order struct {
+	ID                uuid.UUID          `json:"id"`
+	UserID            uuid.UUID          `json:"user_id"`
+	Status            string             `json:"status"`
+	ShippingCost      int64              `json:"shipping_cost"`
+	TotalPrice        int64              `json:"total_price"`
+	AddressTitle      pgtype.Text        `json:"address_title"`
+	AddressProvince   pgtype.Text        `json:"address_province"`
+	AddressCity       pgtype.Text        `json:"address_city"`
+	AddressDetail     pgtype.Text        `json:"address_detail"`
+	AddressPostalCode pgtype.Text        `json:"address_postal_code"`
+	AddressLat        pgtype.Numeric     `json:"address_lat"`
+	AddressLng        pgtype.Numeric     `json:"address_lng"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
+type OrderItem struct {
+	ID         uuid.UUID `json:"id"`
+	OrderID    uuid.UUID `json:"order_id"`
+	VariantID  uuid.UUID `json:"variant_id"`
+	ProductID  uuid.UUID `json:"product_id"`
+	Quantity   int32     `json:"quantity"`
+	UnitPrice  int64     `json:"unit_price"`
+	TotalPrice int64     `json:"total_price"`
+}
+
 type Product struct {
 	ID          uuid.UUID        `json:"id"`
 	Name        string           `json:"name"`
@@ -79,6 +106,11 @@ type Session struct {
 	ExpiresAt    pgtype.Timestamp `json:"expires_at"`
 	CreatedAt    pgtype.Timestamp `json:"created_at"`
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+}
+
+type ShippingSetting struct {
+	ID   int32 `json:"id"`
+	Cost int64 `json:"cost"`
 }
 
 type User struct {

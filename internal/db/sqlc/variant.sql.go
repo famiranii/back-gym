@@ -45,6 +45,22 @@ func (q *Queries) CreateVariant(ctx context.Context, arg CreateVariantParams) (P
 	return i, err
 }
 
+const decreaseVariantStock = `-- name: DecreaseVariantStock :exec
+UPDATE product_variants
+SET stock = stock - $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND stock >= $2
+`
+
+type DecreaseVariantStockParams struct {
+	ID    uuid.UUID `json:"id"`
+	Stock int32     `json:"stock"`
+}
+
+func (q *Queries) DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) error {
+	_, err := q.db.Exec(ctx, decreaseVariantStock, arg.ID, arg.Stock)
+	return err
+}
+
 const deleteVariant = `-- name: DeleteVariant :exec
 DELETE FROM product_variants
 WHERE id = $1

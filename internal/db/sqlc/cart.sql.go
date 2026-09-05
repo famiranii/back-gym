@@ -68,8 +68,7 @@ SELECT
     p.discount,
 
     -- قیمت نهایی بعد از تخفیف
-    ROUND(p.price * (1 - COALESCE(p.discount, 0) / 100)) AS final_price,
-
+    ROUND(p.price * (1 - COALESCE(p.discount, 0) / 100.0))::bigint AS final_price,
     pi.url AS image_url
 
 FROM cart_items ci
@@ -104,7 +103,7 @@ type GetCartRow struct {
 	ProductName string         `json:"product_name"`
 	Price       pgtype.Numeric `json:"price"`
 	Discount    pgtype.Numeric `json:"discount"`
-	FinalPrice  float64        `json:"final_price"`
+	FinalPrice  int64          `json:"final_price"`
 	ImageUrl    string         `json:"image_url"`
 }
 
