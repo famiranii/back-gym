@@ -47,13 +47,13 @@ type Order struct {
 }
 
 type OrderItem struct {
-	ID         uuid.UUID `json:"id"`
-	OrderID    uuid.UUID `json:"order_id"`
-	VariantID  uuid.UUID `json:"variant_id"`
-	ProductID  uuid.UUID `json:"product_id"`
-	Quantity   int32     `json:"quantity"`
-	UnitPrice  int64     `json:"unit_price"`
-	TotalPrice int64     `json:"total_price"`
+	ID         uuid.UUID   `json:"id"`
+	OrderID    uuid.UUID   `json:"order_id"`
+	VariantID  pgtype.UUID `json:"variant_id"`
+	ProductID  pgtype.UUID `json:"product_id"`
+	Quantity   int32       `json:"quantity"`
+	UnitPrice  int64       `json:"unit_price"`
+	TotalPrice int64       `json:"total_price"`
 }
 
 type Product struct {

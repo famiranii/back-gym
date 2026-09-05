@@ -92,12 +92,12 @@ INSERT INTO order_items (
 `
 
 type CreateOrderItemParams struct {
-	OrderID    uuid.UUID `json:"order_id"`
-	VariantID  uuid.UUID `json:"variant_id"`
-	ProductID  uuid.UUID `json:"product_id"`
-	Quantity   int32     `json:"quantity"`
-	UnitPrice  int64     `json:"unit_price"`
-	TotalPrice int64     `json:"total_price"`
+	OrderID    uuid.UUID   `json:"order_id"`
+	VariantID  pgtype.UUID `json:"variant_id"`
+	ProductID  pgtype.UUID `json:"product_id"`
+	Quantity   int32       `json:"quantity"`
+	UnitPrice  int64       `json:"unit_price"`
+	TotalPrice int64       `json:"total_price"`
 }
 
 func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error) {
@@ -177,8 +177,8 @@ WHERE oi.order_id = $1
 type GetOrderItemsRow struct {
 	ID          uuid.UUID   `json:"id"`
 	OrderID     uuid.UUID   `json:"order_id"`
-	VariantID   uuid.UUID   `json:"variant_id"`
-	ProductID   uuid.UUID   `json:"product_id"`
+	VariantID   pgtype.UUID `json:"variant_id"`
+	ProductID   pgtype.UUID `json:"product_id"`
 	Quantity    int32       `json:"quantity"`
 	UnitPrice   int64       `json:"unit_price"`
 	TotalPrice  int64       `json:"total_price"`

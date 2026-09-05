@@ -5,6 +5,7 @@ import (
 	"github.com/famiranii/back-gym.git/internal/token"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type OrderHandler struct {
@@ -88,10 +89,11 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 
 	for _, item := range cartItems {
 		unitPrice := item.FinalPrice
+		// خط 94 — CreateOrderItem
 		_, err := h.store.CreateOrderItem(c.Context(), db.CreateOrderItemParams{
 			OrderID:    order.ID,
-			VariantID:  item.VariantID,
-			ProductID:  item.ProductID,
+			VariantID:  pgtype.UUID{Bytes: item.VariantID, Valid: true},
+			ProductID:  pgtype.UUID{Bytes: item.ProductID, Valid: true},
 			Quantity:   item.Quantity,
 			UnitPrice:  unitPrice,
 			TotalPrice: unitPrice * int64(item.Quantity),
@@ -175,10 +177,12 @@ func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 		items, err := h.store.GetOrderItems(c.Context(), orderID)
 		if err == nil {
 			for _, item := range items {
-				h.store.DecreaseVariantStock(c.Context(), db.DecreaseVariantStockParams{
-					ID:    item.VariantID,
-					Stock: item.Quantity,
-				})
+				if item.VariantID.Valid {
+					h.store.DecreaseVariantStock(c.Context(), db.DecreaseVariantStockParams{
+						ID:    item.VariantID.Bytes,
+						Stock: item.Quantity,
+					})
+				}
 			}
 		}
 	}

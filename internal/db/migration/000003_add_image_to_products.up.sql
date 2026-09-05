@@ -1,9 +1,0 @@
-ALTER TABLE products DROP COLUMN IF EXISTS image_url;
-
-CREATE TABLE product_images (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    url TEXT NOT NULL,
-    is_primary BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
