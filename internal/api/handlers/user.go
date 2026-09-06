@@ -62,18 +62,21 @@ type LoginUserResponse struct {
 func (u *UserHandler) RegisterUser(c fiber.Ctx) error {
 	var req CreateUserRequest
 
+	//put user json to req
 	if err := c.Bind().Body(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
+	//validate with req struct
 	if err := validate.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
+	//hashed password
 	hashedPassword, err := util.HashPassword(req.Password)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{

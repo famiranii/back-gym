@@ -2,23 +2,18 @@ package handlers
 
 import (
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
-	"github.com/famiranii/back-gym.git/internal/token"
-	"github.com/famiranii/back-gym.git/internal/util"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 )
 
 type VariantHandler struct {
 	Store      *db.Store
-	Config     util.Config
-	TokenMaker token.Maker
 }
 
-func NewVariantHandler(store *db.Store, tokenMaker token.Maker, config util.Config) *VariantHandler {
+func NewVariantHandler(store *db.Store) *VariantHandler {
 	return &VariantHandler{
 		Store:      store,
-		Config:     config,
-		TokenMaker: tokenMaker,
 	}
 }
 

@@ -1,28 +1,71 @@
 services:
+
   postgres:
     image: postgres:16
     container_name: gym-postgres
     restart: unless-stopped
+
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: secret
       POSTGRES_DB: gym
+
     ports:
       - "5432:5432"
+
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+
+  backend:
+    build:
+      context: .
+      dockerfile: dockerfile
+
+    container_name: gym-backend
+    restart: unless-stopped
+
+    env_file:
+      - app.docker.env
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - uploads_data:/app/uploads
+
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ../front
+      dockerfile: Dockerfile
+
+    container_name: gym-frontend
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      - backend
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: gym-pgadmin
     restart: unless-stopped
+
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@gmial.com
       PGADMIN_DEFAULT_PASSWORD: admin
+
     ports:
       - "7070:80"
+
     depends_on:
       - postgres
 
+
 volumes:
   postgres_data:
+  uploads_data:

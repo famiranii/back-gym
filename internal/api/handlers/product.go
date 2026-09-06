@@ -4,8 +4,6 @@ import (
 	"strconv"
 
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
-	"github.com/famiranii/back-gym.git/internal/token"
-	"github.com/famiranii/back-gym.git/internal/util"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -13,15 +11,11 @@ import (
 
 type ProductHandler struct {
 	Store      *db.Store
-	Config     util.Config
-	TokenMaker token.Maker
 }
 
-func NewProductHandler(store *db.Store, tokenMaker token.Maker, config util.Config) *ProductHandler {
+func NewProductHandler(store *db.Store) *ProductHandler {
 	return &ProductHandler{
 		Store:      store,
-		Config:     config,
-		TokenMaker: tokenMaker,
 	}
 }
 

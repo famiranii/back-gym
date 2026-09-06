@@ -1,0 +1,16 @@
+.git
+.gitignore
+
+.env
+app.env
+
+uploads/*
+
+Dockerfile
+dockerfile
+docker-compose.yml
+
+*.log
+
+tmp/
+dist/

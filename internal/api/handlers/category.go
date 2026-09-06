@@ -2,24 +2,19 @@ package handlers
 
 import (
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
-	"github.com/famiranii/back-gym.git/internal/token"
-	"github.com/famiranii/back-gym.git/internal/util"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type CategoryHandler struct {
-	Store      *db.Store
-	Config     util.Config
-	TokenMaker token.Maker
+	Store *db.Store
 }
 
-func NewCategoryHandler(store *db.Store, tokenMaker token.Maker, config util.Config) *CategoryHandler {
+func NewCategoryHandler(store *db.Store) *CategoryHandler {
 	return &CategoryHandler{
-		Store:      store,
-		Config:     config,
-		TokenMaker: tokenMaker,
+		Store: store,
 	}
 }
 

@@ -27,7 +27,7 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Get("/users/:id", auth, user.GetUser)
 
 	// Products
-	product := handlers.NewProductHandler(server.Store, server.TokenMaker, server.Config)
+	product := handlers.NewProductHandler(server.Store)
 	server.App.Get("/products", product.GetAllProducts)             // done
 	server.App.Get("/products/:id", product.GetProduct)             //done
 	server.App.Post("/products", auth, product.CreateProduct)       // done
@@ -35,14 +35,14 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Delete("/products/:id", auth, product.DeleteProduct) //done
 
 	// Variants
-	variant := handlers.NewVariantHandler(server.Store, server.TokenMaker, server.Config)
+	variant := handlers.NewVariantHandler(server.Store)
 	server.App.Get("/products/:id/variants", variant.GetVariantsByProduct)
 	server.App.Post("/products/:id/variants", auth, variant.CreateVariant)
 	server.App.Put("/variants/:id", auth, variant.UpdateVariantStock)
 	server.App.Delete("/variants/:id", auth, variant.DeleteVariant)
 
 	//category
-	category := handlers.NewCategoryHandler(server.Store, server.TokenMaker, server.Config)
+	category := handlers.NewCategoryHandler(server.Store)
 
 	server.App.Get("/categories", category.GetAllCategories)            //done
 	server.App.Get("/categories/:id", category.GetCategoryByID)         // done
