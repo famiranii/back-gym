@@ -24,10 +24,12 @@ type CreateUserRequest struct {
 	Password    string `json:"password" validate:"required"`
 }
 type userResponse struct {
-	ID        uuid.UUID        `json:"id"`
-	FullName  string           `json:"full_name"`
-	Phone     string           `json:"phone"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
+	ID            uuid.UUID        `json:"id"`
+	FullName      string           `json:"full_name"`
+	Phone         string           `json:"phone"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	CartLength    int              `json:"cart_length"`
+	PendingLength int              `json:"pending_length"`
 }
 
 func NewUserHandler(store *db.Store, tokenMaker token.Maker, config util.Config) *UserHandler {
@@ -261,12 +263,34 @@ func (u *UserHandler) GetAllUsers(c fiber.Ctx) error {
 func (u *UserHandler) GetMe(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 
-	user, err := u.Store.GetUserByPhone(c.Context(), payload.Phone)
+	user, err := u.Store.GetUserByID(c.Context(), payload.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "user not found",
 		})
 	}
 
-	return c.JSON(NewUserResponse(user))
+	cart, err := u.Store.GetCart(c.Context(), payload.UserID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get cart",
+		})
+	}
+	orders, err := u.Store.GetOrdersByUser(c.Context(), payload.UserID)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to get orders"})
+	}
+	pendingOrdersCount := 0
+
+	for _, order := range orders {
+		if order.Status == "pending" {
+			pendingOrdersCount++
+		}
+	}
+	rsp := NewUserResponse(user)
+	rsp.CartLength = len(cart)
+	rsp.PendingLength = pendingOrdersCount
+
+	return c.JSON(rsp)
 }

@@ -21,7 +21,7 @@ func NewCartHandler(store *db.Store) *CartHandler {
 func (h *CartHandler) GetCart(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 
-	user, err := h.Store.GetUserByPhone(c.Context(), payload.Phone)
+	user, err := h.Store.GetUserByID(c.Context(), payload.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
 	}
@@ -43,7 +43,7 @@ type AddToCartRequest struct {
 func (h *CartHandler) AddToCart(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 
-	user, err := h.Store.GetUserByPhone(c.Context(), payload.Phone)
+	user, err := h.Store.GetUserByID(c.Context(), payload.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
 	}
@@ -81,7 +81,7 @@ type UpdateCartRequest struct {
 func (h *CartHandler) UpdateCartItem(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 
-	user, err := h.Store.GetUserByPhone(c.Context(), payload.Phone)
+	user, err := h.Store.GetUserByID(c.Context(), payload.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
 	}
@@ -115,7 +115,7 @@ func (h *CartHandler) UpdateCartItem(c fiber.Ctx) error {
 func (h *CartHandler) RemoveFromCart(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 
-	user, err := h.Store.GetUserByPhone(c.Context(), payload.Phone)
+	user, err := h.Store.GetUserByID(c.Context(), payload.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
 	}
@@ -140,7 +140,7 @@ func (h *CartHandler) RemoveFromCart(c fiber.Ctx) error {
 func (h *CartHandler) ClearCart(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 
-	user, err := h.Store.GetUserByPhone(c.Context(), payload.Phone)
+	user, err := h.Store.GetUserByID(c.Context(), payload.UserID)
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "user not found"})
 	}

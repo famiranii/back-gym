@@ -17,39 +17,39 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
 
-  backend:
-    build:
-      context: .
-      dockerfile: dockerfile
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: dockerfile
 
-    container_name: gym-backend
-    restart: unless-stopped
+  #   container_name: gym-backend
+  #   restart: unless-stopped
 
-    env_file:
-      - app.docker.env
+  #   env_file:
+  #     - app.docker.env
 
-    ports:
-      - "8080:8080"
+  #   ports:
+  #     - "8080:8080"
 
-    volumes:
-      - uploads_data:/app/uploads
+  #   volumes:
+  #     - uploads_data:/app/uploads
 
-    depends_on:
-      - postgres
+  #   depends_on:
+  #     - postgres
 
-  frontend:
-    build:
-      context: ../front
-      dockerfile: Dockerfile
+  # frontend:
+  #   build:
+  #     context: ../front
+  #     dockerfile: Dockerfile
 
-    container_name: gym-frontend
-    restart: unless-stopped
+  #   container_name: gym-frontend
+  #   restart: unless-stopped
 
-    ports:
-      - "3000:3000"
+  #   ports:
+  #     - "3000:3000"
 
-    depends_on:
-      - backend
+  #   depends_on:
+  #     - backend
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: gym-pgadmin
