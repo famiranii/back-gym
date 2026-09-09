@@ -12,6 +12,7 @@ import (
 
 type Querier interface {
 	AddToCart(ctx context.Context, arg AddToCartParams) (CartItem, error)
+	AddToWishlist(ctx context.Context, arg AddToWishlistParams) (Wishlist, error)
 	BlockSession(ctx context.Context, id uuid.UUID) (Session, error)
 	ClearCart(ctx context.Context, userID uuid.UUID) error
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
@@ -31,12 +32,12 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteUserAddress(ctx context.Context, arg DeleteUserAddressParams) error
 	DeleteVariant(ctx context.Context, id uuid.UUID) error
-	GetAllCategories(ctx context.Context) ([]GetAllCategoriesRow, error)
+	GetAllCategories(ctx context.Context) ([]Category, error)
 	GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error)
 	GetAllUsers(ctx context.Context) ([]User, error)
 	GetAverageRating(ctx context.Context, productID uuid.UUID) (float64, error)
 	GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, error)
-	GetCategoryByID(ctx context.Context, id uuid.UUID) (GetCategoryByIDRow, error)
+	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
 	GetOrderItems(ctx context.Context, orderID uuid.UUID) ([]GetOrderItemsRow, error)
 	GetOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Order, error)
@@ -52,12 +53,16 @@ type Querier interface {
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
 	GetVariantByID(ctx context.Context, id uuid.UUID) (ProductVariant, error)
 	GetVariantsByProductID(ctx context.Context, productID uuid.UUID) ([]ProductVariant, error)
+	GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]GetWishlistByUserIDRow, error)
+	IsInWishlist(ctx context.Context, arg IsInWishlistParams) (bool, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
+	RemoveFromWishlist(ctx context.Context, arg RemoveFromWishlistParams) error
 	SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) error
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)
 	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateShippingCost(ctx context.Context, cost int64) (ShippingSetting, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserAddress(ctx context.Context, arg UpdateUserAddressParams) (UserAddress, error)
 	UpdateVariant(ctx context.Context, arg UpdateVariantParams) (ProductVariant, error)
 	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariant, error)

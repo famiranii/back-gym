@@ -24,9 +24,9 @@ type Category struct {
 	ID        uuid.UUID        `json:"id"`
 	Name      string           `json:"name"`
 	ParentID  pgtype.UUID      `json:"parent_id"`
+	ImageUrl  pgtype.Text      `json:"image_url"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-	ImageUrl  pgtype.Text      `json:"image_url"`
 }
 
 type Order struct {
@@ -135,4 +135,11 @@ type UserAddress struct {
 	IsDefault  bool             `json:"is_default"`
 	CreatedAt  pgtype.Timestamp `json:"created_at"`
 	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
+}
+
+type Wishlist struct {
+	ID        uuid.UUID          `json:"id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	ProductID uuid.UUID          `json:"product_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }

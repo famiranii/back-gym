@@ -25,6 +25,8 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Get("/users", user.GetAllUsers)
 	server.App.Get("/users/me", auth, user.GetMe)
 	server.App.Get("/users/:id", auth, user.GetUser)
+	server.App.Put("/users/me", auth, user.UpdateUser)
+	server.App.Post("/logout", user.Logout)
 
 	// Products
 	product := handlers.NewProductHandler(server.Store)
@@ -87,5 +89,10 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Get("/orders", auth, order.GetMyOrders)
 	server.App.Get("/orders/:id", auth, order.GetOrderDetail)
 	server.App.Patch("/orders/:id/status", auth, order.UpdateOrderStatus)
+
+	whishList := handlers.NewWishlistHandler(server.Store)
+	server.App.Get("/wishlist", auth , whishList.GetWishlist)
+	server.App.Post("/wishlist",auth, whishList.ToggleWishlist)
+	server.App.Delete("wishlist/:product_id", auth,whishList.RemoveFromWishlist)
 	return nil
 }

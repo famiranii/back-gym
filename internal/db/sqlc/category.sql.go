@@ -15,7 +15,7 @@ import (
 const createCategory = `-- name: CreateCategory :one
 INSERT INTO categories (name, parent_id, image_url)
 VALUES ($1, $2, $3)
-RETURNING id, name, parent_id, created_at, updated_at, image_url
+RETURNING id, name, parent_id, image_url, created_at, updated_at
 `
 
 type CreateCategoryParams struct {
@@ -31,9 +31,9 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 		&i.ID,
 		&i.Name,
 		&i.ParentID,
+		&i.ImageUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.ImageUrl,
 	)
 	return i, err
 }
@@ -53,24 +53,15 @@ SELECT id, name, parent_id, image_url, created_at, updated_at FROM categories
 ORDER BY name
 `
 
-type GetAllCategoriesRow struct {
-	ID        uuid.UUID        `json:"id"`
-	Name      string           `json:"name"`
-	ParentID  pgtype.UUID      `json:"parent_id"`
-	ImageUrl  pgtype.Text      `json:"image_url"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
-func (q *Queries) GetAllCategories(ctx context.Context) ([]GetAllCategoriesRow, error) {
+func (q *Queries) GetAllCategories(ctx context.Context) ([]Category, error) {
 	rows, err := q.db.Query(ctx, getAllCategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetAllCategoriesRow{}
+	items := []Category{}
 	for rows.Next() {
-		var i GetAllCategoriesRow
+		var i Category
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -94,18 +85,9 @@ SELECT id, name, parent_id, image_url, created_at, updated_at FROM categories
 WHERE id = $1
 `
 
-type GetCategoryByIDRow struct {
-	ID        uuid.UUID        `json:"id"`
-	Name      string           `json:"name"`
-	ParentID  pgtype.UUID      `json:"parent_id"`
-	ImageUrl  pgtype.Text      `json:"image_url"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
-func (q *Queries) GetCategoryByID(ctx context.Context, id uuid.UUID) (GetCategoryByIDRow, error) {
+func (q *Queries) GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error) {
 	row := q.db.QueryRow(ctx, getCategoryByID, id)
-	var i GetCategoryByIDRow
+	var i Category
 	err := row.Scan(
 		&i.ID,
 		&i.Name,

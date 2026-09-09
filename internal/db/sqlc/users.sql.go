@@ -107,3 +107,39 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phone string) (User, error
 	)
 	return i, err
 }
+
+const updateUser = `-- name: UpdateUser :one
+UPDATE users
+SET
+    full_name = $2,
+    phone = $3,
+    password = $4
+WHERE id = $1
+RETURNING id, full_name, phone, password, created_at, updated_at
+`
+
+type UpdateUserParams struct {
+	ID       uuid.UUID `json:"id"`
+	FullName string    `json:"full_name"`
+	Phone    string    `json:"phone"`
+	Password string    `json:"password"`
+}
+
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUser,
+		arg.ID,
+		arg.FullName,
+		arg.Phone,
+		arg.Password,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FullName,
+		&i.Phone,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}

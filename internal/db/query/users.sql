@@ -16,3 +16,11 @@ SELECT *
 FROM users
 ORDER BY created_at DESC;
 
+-- name: UpdateUser :one
+UPDATE users
+SET
+    full_name = $2,
+    phone = $3,
+    password = $4
+WHERE id = $1
+RETURNING *;

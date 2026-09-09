@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/netip"
+	"time"
 
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
 	"github.com/famiranii/back-gym.git/internal/token"
@@ -293,4 +294,79 @@ func (u *UserHandler) GetMe(c fiber.Ctx) error {
 	rsp.PendingLength = pendingOrdersCount
 
 	return c.JSON(rsp)
+}
+
+type UpdateUserRequest struct {
+	FullName string `json:"full_name" validate:"required"`
+	Phone    string `json:"phone" validate:"required"`
+	Password string `json:"password,omitempty"`
+}
+
+func (u *UserHandler) UpdateUser(c fiber.Ctx) error {
+	var req UpdateUserRequest
+
+	if err := c.Bind().Body(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	if err := validate.Struct(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	payload := c.Locals("payload").(*token.Payload)
+
+	arg := db.UpdateUserParams{
+		ID:       payload.UserID,
+		FullName: req.FullName,
+		Phone:    req.Phone,
+	}
+
+	if req.Password != "" {
+		hashedPassword, err := util.HashPassword(req.Password)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "failed to hash password",
+			})
+		}
+
+		arg.Password = hashedPassword
+	}
+
+	user, err := u.Store.UpdateUser(c.Context(), arg)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(NewUserResponse(user))
+}
+func (u *UserHandler) Logout(c fiber.Ctx) error {
+    c.Cookie(&fiber.Cookie{
+        Name:     "access_token",
+        Value:     "",
+        Expires:  time.Unix(0, 0),
+        HTTPOnly: true,
+        Secure:   false,
+        SameSite: "Lax",
+        Path:     "/",
+    })
+
+    c.Cookie(&fiber.Cookie{
+        Name:     "refresh_token",
+        Value:     "",
+        Expires:  time.Unix(0, 0),
+        HTTPOnly: true,
+        Secure:   false,
+        SameSite: "Lax",
+        Path:     "/",
+    })
+
+    return c.JSON(fiber.Map{
+        "message": "logged out successfully",
+    })
 }
