@@ -37,32 +37,44 @@ func (q *Queries) AddToWishlist(ctx context.Context, arg AddToWishlistParams) (W
 }
 
 const getWishlistByUserID = `-- name: GetWishlistByUserID :many
+
 SELECT
     w.id,
     w.created_at,
-    p.id          AS product_id,
-    p.name        AS product_name,
-    p.price       AS product_price,
-    p.discount    AS product_discount,
-    p.is_active   AS product_is_active,
-    (SELECT url FROM product_images
-     WHERE product_id = p.id AND is_primary = true
-     LIMIT 1)     AS primary_image
+    p.id AS id,
+    p.name AS name,
+    p.price AS price,
+    p.discount AS discount,
+    p.is_active AS is_active,
+    c.name AS category_name,
+    (
+        SELECT url
+        FROM product_images
+        WHERE product_id = p.id
+          AND is_primary = true
+        LIMIT 1
+    ) AS primary_image,
+    p.price - (p.price * p.discount / 100) AS final_price
 FROM wishlists w
-JOIN products p ON p.id = w.product_id
+JOIN products p
+    ON p.id = w.product_id
+LEFT JOIN categories c
+    ON c.id = p.category_id
 WHERE w.user_id = $1
 ORDER BY w.created_at DESC
 `
 
 type GetWishlistByUserIDRow struct {
-	ID              uuid.UUID          `json:"id"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	ProductID       uuid.UUID          `json:"product_id"`
-	ProductName     string             `json:"product_name"`
-	ProductPrice    pgtype.Numeric     `json:"product_price"`
-	ProductDiscount pgtype.Numeric     `json:"product_discount"`
-	ProductIsActive bool               `json:"product_is_active"`
-	PrimaryImage    string             `json:"primary_image"`
+	ID           uuid.UUID          `json:"id"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	ID_2         uuid.UUID          `json:"id_2"`
+	Name         string             `json:"name"`
+	Price        pgtype.Numeric     `json:"price"`
+	Discount     pgtype.Numeric     `json:"discount"`
+	IsActive     bool               `json:"is_active"`
+	CategoryName pgtype.Text        `json:"category_name"`
+	PrimaryImage string             `json:"primary_image"`
+	FinalPrice   int32              `json:"final_price"`
 }
 
 func (q *Queries) GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]GetWishlistByUserIDRow, error) {
@@ -77,12 +89,14 @@ func (q *Queries) GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.ProductID,
-			&i.ProductName,
-			&i.ProductPrice,
-			&i.ProductDiscount,
-			&i.ProductIsActive,
+			&i.ID_2,
+			&i.Name,
+			&i.Price,
+			&i.Discount,
+			&i.IsActive,
+			&i.CategoryName,
 			&i.PrimaryImage,
+			&i.FinalPrice,
 		); err != nil {
 			return nil, err
 		}

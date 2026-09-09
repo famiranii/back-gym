@@ -8,12 +8,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-func (s *Store) GetProductDetail(ctx context.Context, id uuid.UUID) (ProductDetailResponse, error) {
+func (s *Store) GetProductDetail(ctx context.Context, id uuid.UUID, userId *uuid.UUID) (ProductDetailResponse, error) {
+
 	product, err := s.GetProductByID(ctx, id)
 	if err != nil {
 		return ProductDetailResponse{}, err
 	}
+	var isSaved *bool
 
+	if userId != nil {
+		saved, err := s.IsInWishlist(ctx, IsInWishlistParams{
+			UserID:    *userId,
+			ProductID: id,
+		})
+		if err != nil {
+			return ProductDetailResponse{}, err
+		}
+
+		isSaved = &saved
+	}
 	categoryName := ""
 	if product.CategoryID.Valid {
 		catID := uuid.UUID(product.CategoryID.Bytes)
@@ -91,6 +104,7 @@ func (s *Store) GetProductDetail(ctx context.Context, id uuid.UUID) (ProductDeta
 		Images:        nullSlice(images),
 		Variants:      nullSlice(variants),
 		AverageRating: averageRating,
+		IsSaved:       isSaved,
 	}, nil
 }
 

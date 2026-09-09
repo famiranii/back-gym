@@ -16,6 +16,7 @@ func SetupRoutes(server *api.Server) error {
 		AllowCredentials: true,
 	}))
 
+	optionalAuth := middleware.OptionalAuthMiddleware(server.TokenMaker)
 	auth := middleware.AuthMiddleware(server.TokenMaker)
 
 	// Auth
@@ -31,7 +32,7 @@ func SetupRoutes(server *api.Server) error {
 	// Products
 	product := handlers.NewProductHandler(server.Store)
 	server.App.Get("/products", product.GetAllProducts)             // done
-	server.App.Get("/products/:id", product.GetProduct)             //done
+	server.App.Get("/products/:id",optionalAuth, product.GetProduct)             //done
 	server.App.Post("/products", auth, product.CreateProduct)       // done
 	server.App.Put("/products/:id", auth, product.UpdateProduct)    //done
 	server.App.Delete("/products/:id", auth, product.DeleteProduct) //done

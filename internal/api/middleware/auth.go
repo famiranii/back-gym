@@ -27,3 +27,26 @@ func AuthMiddleware(tokenMaker token.Maker) fiber.Handler {
 		return c.Next()
 	}
 }
+
+func OptionalAuthMiddleware(tokenMaker token.Maker) fiber.Handler {
+	return func(c fiber.Ctx) error {
+		accessToken := c.Cookies("access_token")
+
+		// Token وجود ندارد؛ مهمان هستیم
+		if accessToken == "" {
+			return c.Next()
+		}
+
+		// Token وجود دارد ولی معتبر نیست
+		payload, err := tokenMaker.VerifyToken(accessToken)
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		c.Locals("payload", payload)
+
+		return c.Next()
+	}
+}

@@ -20,4 +20,5 @@ type ProductDetailResponse struct {
 	Images        []ProductImage   `json:"images"`
 	Variants      []ProductVariant `json:"variants"`
 	AverageRating float64          `json:"average_rating"`
+	IsSaved       *bool            `json:"is_saved,omitempty"`
 }

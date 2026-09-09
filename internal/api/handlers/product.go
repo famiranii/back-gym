@@ -4,18 +4,19 @@ import (
 	"strconv"
 
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
+	"github.com/famiranii/back-gym.git/internal/token"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type ProductHandler struct {
-	Store      *db.Store
+	Store *db.Store
 }
 
 func NewProductHandler(store *db.Store) *ProductHandler {
 	return &ProductHandler{
-		Store:      store,
+		Store: store,
 	}
 }
 
@@ -216,16 +217,32 @@ func (h *ProductHandler) UpdateProduct(c fiber.Ctx) error {
 	return c.JSON(product)
 }
 
-// GetProduct — محصول کامل با تصاویر و variants
 func (h *ProductHandler) GetProduct(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid id"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid id",
+		})
 	}
 
-	detail, err := h.Store.GetProductDetail(c.Context(), id)
+	var userID *uuid.UUID
+
+	if payload := c.Locals("payload"); payload != nil {
+		p := payload.(*token.Payload)
+
+		userID = &p.UserID
+
+	}
+
+	detail, err := h.Store.GetProductDetail(
+		c.Context(),
+		id,
+		userID,
+	)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "product not found"})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "product not found",
+		})
 	}
 
 	return c.JSON(detail)

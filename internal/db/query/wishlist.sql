@@ -9,19 +9,29 @@ DELETE FROM wishlists
 WHERE user_id = $1 AND product_id = $2;
 
 -- name: GetWishlistByUserID :many
+
 SELECT
     w.id,
     w.created_at,
-    p.id          AS product_id,
-    p.name        AS product_name,
-    p.price       AS product_price,
-    p.discount    AS product_discount,
-    p.is_active   AS product_is_active,
-    (SELECT url FROM product_images
-     WHERE product_id = p.id AND is_primary = true
-     LIMIT 1)     AS primary_image
+    p.id AS id,
+    p.name AS name,
+    p.price AS price,
+    p.discount AS discount,
+    p.is_active AS is_active,
+    c.name AS category_name,
+    (
+        SELECT url
+        FROM product_images
+        WHERE product_id = p.id
+          AND is_primary = true
+        LIMIT 1
+    ) AS primary_image,
+    p.price - (p.price * p.discount / 100) AS final_price
 FROM wishlists w
-JOIN products p ON p.id = w.product_id
+JOIN products p
+    ON p.id = w.product_id
+LEFT JOIN categories c
+    ON c.id = p.category_id
 WHERE w.user_id = $1
 ORDER BY w.created_at DESC;
 
