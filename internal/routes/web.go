@@ -90,6 +90,8 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Get("/orders", auth, order.GetMyOrders)
 	server.App.Get("/orders/:id", auth, order.GetOrderDetail)
 	server.App.Patch("/orders/:id/status", auth, order.UpdateOrderStatus)
+	server.App.Get("/orders/status/:status", auth, order.GetOrdersByStatus)
+
 
 	whishList := handlers.NewWishlistHandler(server.Store)
 	server.App.Get("/wishlist", auth , whishList.GetWishlist)

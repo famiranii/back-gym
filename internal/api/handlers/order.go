@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
 	"github.com/famiranii/back-gym.git/internal/token"
 	"github.com/gofiber/fiber/v3"
@@ -121,17 +123,23 @@ func (h *OrderHandler) GetMyOrders(c fiber.Ctx) error {
 func (h *OrderHandler) GetOrderDetail(c fiber.Ctx) error {
 	orderID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid order id"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid order id",
+		})
 	}
 
 	order, err := h.store.GetOrderByID(c.Context(), orderID)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "order not found"})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "order not found",
+		})
 	}
 
 	items, err := h.store.GetOrderItems(c.Context(), orderID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to get order items"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get order items",
+		})
 	}
 
 	return c.JSON(fiber.Map{
@@ -139,7 +147,6 @@ func (h *OrderHandler) GetOrderDetail(c fiber.Ctx) error {
 		"items": items,
 	})
 }
-
 func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 	orderID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -188,4 +195,56 @@ func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 	}
 
 	return c.JSON(order)
+}
+
+func (h *OrderHandler) GetOrdersByStatus(c fiber.Ctx) error {
+	payload := c.Locals("payload").(*token.Payload)
+	userID := payload.UserID
+
+	status := c.Params("status")
+
+	validStatuses := map[string]bool{
+		"pending":   true,
+		"paid":      true,
+		"shipped":   true,
+		"delivered": true,
+		"cancelled": true,
+	}
+
+	if !validStatuses[status] {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid status",
+		})
+	}
+
+	offset, err := strconv.Atoi(c.Query("offset", "0"))
+	if err != nil || offset < 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid offset",
+		})
+	}
+
+	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	if err != nil || limit <= 0 || limit > 100 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid limit",
+		})
+	}
+
+	orders, err := h.store.GetOrdersByUserAndStatus(
+		c.Context(),
+		db.GetOrdersByUserAndStatusParams{
+			UserID: userID,
+			Status: status,
+			Limit:  int32(limit),
+			Offset: int32(offset),
+		},
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get orders",
+		})
+	}
+
+	return c.JSON(orders)
 }

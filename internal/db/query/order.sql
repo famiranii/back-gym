@@ -33,8 +33,13 @@ WHERE user_id = $1
 ORDER BY created_at DESC;
 
 -- name: GetOrderByID :one
-SELECT * FROM orders
-WHERE id = $1;
+SELECT
+    o.*,
+    u.phone AS user_phone
+FROM orders o
+JOIN users u ON u.id = o.user_id
+WHERE o.id = $1
+LIMIT 1;
 
 -- name: GetOrderItems :many
 SELECT
@@ -65,3 +70,13 @@ UPDATE orders
 SET status = $1, updated_at = NOW()
 WHERE id = $2
 RETURNING *;
+
+
+-- name: GetOrdersByUserAndStatus :many
+SELECT *
+FROM orders
+WHERE user_id = $1
+  AND status = $2
+ORDER BY created_at DESC
+LIMIT $3
+OFFSET $4;

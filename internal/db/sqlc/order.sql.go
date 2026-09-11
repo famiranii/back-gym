@@ -123,13 +123,36 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 }
 
 const getOrderByID = `-- name: GetOrderByID :one
-SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at FROM orders
-WHERE id = $1
+SELECT
+    o.id, o.user_id, o.status, o.shipping_cost, o.total_price, o.address_title, o.address_province, o.address_city, o.address_detail, o.address_postal_code, o.address_lat, o.address_lng, o.created_at, o.updated_at,
+    u.phone AS user_phone
+FROM orders o
+JOIN users u ON u.id = o.user_id
+WHERE o.id = $1
+LIMIT 1
 `
 
-func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error) {
+type GetOrderByIDRow struct {
+	ID                uuid.UUID          `json:"id"`
+	UserID            uuid.UUID          `json:"user_id"`
+	Status            string             `json:"status"`
+	ShippingCost      int64              `json:"shipping_cost"`
+	TotalPrice        int64              `json:"total_price"`
+	AddressTitle      pgtype.Text        `json:"address_title"`
+	AddressProvince   pgtype.Text        `json:"address_province"`
+	AddressCity       pgtype.Text        `json:"address_city"`
+	AddressDetail     pgtype.Text        `json:"address_detail"`
+	AddressPostalCode pgtype.Text        `json:"address_postal_code"`
+	AddressLat        pgtype.Numeric     `json:"address_lat"`
+	AddressLng        pgtype.Numeric     `json:"address_lng"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	UserPhone         string             `json:"user_phone"`
+}
+
+func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (GetOrderByIDRow, error) {
 	row := q.db.QueryRow(ctx, getOrderByID, id)
-	var i Order
+	var i GetOrderByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -145,6 +168,7 @@ func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (Order, error)
 		&i.AddressLng,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserPhone,
 	)
 	return i, err
 }
@@ -228,6 +252,63 @@ ORDER BY created_at DESC
 
 func (q *Queries) GetOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Order, error) {
 	rows, err := q.db.Query(ctx, getOrdersByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Order{}
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Status,
+			&i.ShippingCost,
+			&i.TotalPrice,
+			&i.AddressTitle,
+			&i.AddressProvince,
+			&i.AddressCity,
+			&i.AddressDetail,
+			&i.AddressPostalCode,
+			&i.AddressLat,
+			&i.AddressLng,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrdersByUserAndStatus = `-- name: GetOrdersByUserAndStatus :many
+SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+FROM orders
+WHERE user_id = $1
+  AND status = $2
+ORDER BY created_at DESC
+LIMIT $3
+OFFSET $4
+`
+
+type GetOrdersByUserAndStatusParams struct {
+	UserID uuid.UUID `json:"user_id"`
+	Status string    `json:"status"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
+}
+
+func (q *Queries) GetOrdersByUserAndStatus(ctx context.Context, arg GetOrdersByUserAndStatusParams) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getOrdersByUserAndStatus,
+		arg.UserID,
+		arg.Status,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
