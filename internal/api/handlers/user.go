@@ -141,12 +141,14 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 	accessToken, accessPayload, err := u.TokenMaker.CreateToken(
 		req.PhoneNumber,
 		user.ID,
+		user.IsAdmin,
 		u.Config.ACCESS_TOKEN_DURATION,
 	)
 
 	refreshToken, refreshPayload, err := u.TokenMaker.CreateToken(
 		req.PhoneNumber,
 		user.ID,
+		user.IsAdmin,
 		u.Config.REFRESH_TOKEN_DURATION,
 	)
 	if err != nil {

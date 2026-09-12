@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (full_name, phone, password)
 VALUES ($1, $2, $3)
-RETURNING id, full_name, phone, password, created_at, updated_at
+RETURNING id, full_name, phone, password, created_at, updated_at, is_admin
 `
 
 type CreateUserParams struct {
@@ -34,12 +34,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsAdmin,
 	)
 	return i, err
 }
 
 const getAllUsers = `-- name: GetAllUsers :many
-SELECT id, full_name, phone, password, created_at, updated_at
+SELECT id, full_name, phone, password, created_at, updated_at, is_admin
 FROM users
 ORDER BY created_at DESC
 `
@@ -60,6 +61,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 			&i.Password,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.IsAdmin,
 		); err != nil {
 			return nil, err
 		}
@@ -72,7 +74,7 @@ func (q *Queries) GetAllUsers(ctx context.Context) ([]User, error) {
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, full_name, phone, password, created_at, updated_at FROM users
+SELECT id, full_name, phone, password, created_at, updated_at, is_admin FROM users
 WHERE id = $1
 `
 
@@ -86,12 +88,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsAdmin,
 	)
 	return i, err
 }
 
 const getUserByPhone = `-- name: GetUserByPhone :one
-SELECT id, full_name, phone, password, created_at, updated_at FROM users
+SELECT id, full_name, phone, password, created_at, updated_at, is_admin FROM users
 WHERE phone = $1
 `
 
@@ -105,6 +108,7 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phone string) (User, error
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsAdmin,
 	)
 	return i, err
 }
@@ -158,7 +162,7 @@ SET
     phone = $3,
     password = $4
 WHERE id = $1
-RETURNING id, full_name, phone, password, created_at, updated_at
+RETURNING id, full_name, phone, password, created_at, updated_at, is_admin
 `
 
 type UpdateUserParams struct {
@@ -183,6 +187,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Password,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsAdmin,
 	)
 	return i, err
 }

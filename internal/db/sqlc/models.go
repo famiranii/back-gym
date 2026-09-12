@@ -121,6 +121,7 @@ type User struct {
 	Password  string           `json:"password"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	IsAdmin   bool             `json:"is_admin"`
 }
 
 type UserAddress struct {

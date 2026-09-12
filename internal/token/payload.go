@@ -19,12 +19,13 @@ type Payload struct {
 	ID        uuid.UUID `json:"id"`
 	UserID    uuid.UUID `json:"user_id"`
 	Phone     string    `json:"phone"`
+	IsAdmin   bool      `json:"is_admin"`
 	IssuedAt  time.Time `json:"issued_at"`
 	ExpiredAt time.Time `json:"expired_at"`
 	jwt.RegisteredClaims
 }
 
-func NewPayload(phone string, userID uuid.UUID, duration time.Duration) (*Payload, error) {
+func NewPayload(phone string, userID uuid.UUID, isAdmin bool, duration time.Duration) (*Payload, error) {
 	tokenID, err := uuid.NewRandom()
 	if err != nil {
 		return nil, err
@@ -35,6 +36,7 @@ func NewPayload(phone string, userID uuid.UUID, duration time.Duration) (*Payloa
 		ID:        tokenID,
 		UserID:    userID,
 		Phone:     phone,
+		IsAdmin:   isAdmin,
 		IssuedAt:  now,
 		ExpiredAt: now.Add(duration),
 		RegisteredClaims: jwt.RegisteredClaims{

@@ -15,7 +15,7 @@ import (
 const getLowStockProducts = `-- name: GetLowStockProducts :many
 SELECT
     p.id,
-    p.name,
+    p.name,    
     COALESCE(SUM(pv.stock), 0)::bigint AS stock
 FROM products p
 LEFT JOIN product_variants pv

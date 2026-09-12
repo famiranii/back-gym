@@ -60,7 +60,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: admin
 
     ports:
-      - "7070:80"
+      - "9090:80"
 
     depends_on:
       - postgres

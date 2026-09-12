@@ -18,43 +18,44 @@ func SetupRoutes(server *api.Server) error {
 
 	optionalAuth := middleware.OptionalAuthMiddleware(server.TokenMaker)
 	auth := middleware.AuthMiddleware(server.TokenMaker)
+	adminAuth := middleware.AdminMiddleware(server.TokenMaker)
 
 	// Auth
 	user := handlers.NewUserHandler(server.Store, server.TokenMaker, server.Config)
 	server.App.Post("/register", user.RegisterUser)
 	server.App.Post("/login", user.LoginUser)
 	server.App.Post("/logout", user.Logout)
-	server.App.Get("/users", user.GetAllUsers)
+	server.App.Get("/users",adminAuth, user.GetAllUsers)
 	server.App.Get("/users/me", auth, user.GetMe)
-	server.App.Get("/users/search", auth, user.SearchUsers) // ← قبل از :id
-	server.App.Get("/users/:id", auth, user.GetUser)
+	server.App.Get("/users/search", adminAuth, user.SearchUsers) // ← قبل از :id
+	server.App.Get("/users/:id", adminAuth, user.GetUser)
 	server.App.Put("/users/me", auth, user.UpdateUser)
 
 	// Products
 	product := handlers.NewProductHandler(server.Store)
 	server.App.Get("/products", product.GetAllProducts)               // done
 	server.App.Get("/products/:id", optionalAuth, product.GetProduct) //done
-	server.App.Post("/products", auth, product.CreateProduct)         // done
-	server.App.Put("/products/:id", auth, product.UpdateProduct)      //done
-	server.App.Delete("/products/:id", auth, product.DeleteProduct)   //done
+	server.App.Post("/products", adminAuth, product.CreateProduct)         // done
+	server.App.Put("/products/:id", adminAuth, product.UpdateProduct)      //done
+	server.App.Delete("/products/:id", adminAuth, product.DeleteProduct)   //done
 
 	// Variants
 	variant := handlers.NewVariantHandler(server.Store)
-	server.App.Get("/products/:id/variants", variant.GetVariantsByProduct)
-	server.App.Post("/products/:id/variants", auth, variant.CreateVariant)
-	server.App.Put("/variants/:id", auth, variant.UpdateVariantStock)
-	server.App.Delete("/variants/:id", auth, variant.DeleteVariant)
+	server.App.Get("/products/:id/variants",adminAuth, variant.GetVariantsByProduct)
+	server.App.Post("/products/:id/variants", adminAuth, variant.CreateVariant)
+	server.App.Put("/variants/:id", adminAuth, variant.UpdateVariantStock)
+	server.App.Delete("/variants/:id", adminAuth, variant.DeleteVariant)
 
 	//category
 	category := handlers.NewCategoryHandler(server.Store)
 
 	server.App.Get("/categories", category.GetAllCategories)            //done
 	server.App.Get("/categories/:id", category.GetCategoryByID)         // done
-	server.App.Post("/categories", auth, category.CreateCategory)       // done
-	server.App.Delete("/categories/:id", auth, category.DeleteCategory) //done
+	server.App.Post("/categories", adminAuth, category.CreateCategory)       // done
+	server.App.Delete("/categories/:id", adminAuth, category.DeleteCategory) //done
 
 	//upload images
-	server.App.Post("/upload", auth, handlers.UploadImage)
+	server.App.Post("/upload", adminAuth, handlers.UploadImage)
 	server.App.Get("/uploads/*", static.New("./uploads"))
 
 	// Reviews
@@ -62,10 +63,10 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Post("/products/:id/reviews", auth, review.UpsertReview)
 	server.App.Get("/products/:id/reviews", review.GetReviews)
 	server.App.Get("/products/:id/reviews/rating", review.GetAverageRating)
-	server.App.Delete("/products/:id/reviews", auth, review.DeleteReview)
-	server.App.Get("/admin/reviews/pending", auth, review.GetPendingReviews)
-	server.App.Patch("/admin/reviews/:id/approve", auth, review.ApproveReview)
-	server.App.Patch("/admin/reviews/:id/reject", auth, review.RejectReview)
+	server.App.Delete("/products/:id/reviews", adminAuth, review.DeleteReview)
+	server.App.Get("/admin/reviews/pending", adminAuth, review.GetPendingReviews)
+	server.App.Patch("/admin/reviews/:id/approve", adminAuth, review.ApproveReview)
+	server.App.Patch("/admin/reviews/:id/reject", adminAuth, review.RejectReview)
 
 	// Addresses
 	address := handlers.NewAddressHandler(server.Store)
@@ -87,13 +88,13 @@ func SetupRoutes(server *api.Server) error {
 	// Shipping
 	shipping := handlers.NewShippingHandler(server.Store)
 	server.App.Get("/shipping-cost", shipping.GetShippingCost)
-	server.App.Put("/admin/shipping-cost", auth, shipping.UpdateShippingCost)
+	server.App.Put("/admin/shipping-cost", adminAuth, shipping.UpdateShippingCost)
 
 	// Orders
 	order := handlers.NewOrderHandler(server.Store)
 	server.App.Post("/orders", auth, order.CreateOrder)
 	server.App.Get("/orders", auth, order.GetMyOrders)
-	server.App.Get("/admin/orders/:id", order.GetUserOrders) // admin
+	server.App.Get("/admin/orders/:id", adminAuth, order.GetUserOrders) // admin
 	server.App.Get("/orders/:id", auth, order.GetOrderDetail)
 	server.App.Patch("/orders/:id/status", auth, order.UpdateOrderStatus)
 	server.App.Get("/orders/status/:status", auth, order.GetOrdersByStatus)
@@ -106,6 +107,6 @@ func SetupRoutes(server *api.Server) error {
 	//dashboard
 	admin := handlers.NewAdminHandler(server.Store)
 
-	server.App.Get("/admin/dashboard", auth, admin.GetDashboard)
+	server.App.Get("/admin/dashboard", adminAuth, admin.GetDashboard)
 	return nil
 }
