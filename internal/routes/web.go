@@ -21,21 +21,22 @@ func SetupRoutes(server *api.Server) error {
 
 	// Auth
 	user := handlers.NewUserHandler(server.Store, server.TokenMaker, server.Config)
-	server.App.Post("/register", user.RegisterUser) // done
-	server.App.Post("/login", user.LoginUser)       // done
+	server.App.Post("/register", user.RegisterUser)
+	server.App.Post("/login", user.LoginUser)
+	server.App.Post("/logout", user.Logout)
 	server.App.Get("/users", user.GetAllUsers)
 	server.App.Get("/users/me", auth, user.GetMe)
+	server.App.Get("/users/search", auth, user.SearchUsers) // ← قبل از :id
 	server.App.Get("/users/:id", auth, user.GetUser)
 	server.App.Put("/users/me", auth, user.UpdateUser)
-	server.App.Post("/logout", user.Logout)
 
 	// Products
 	product := handlers.NewProductHandler(server.Store)
-	server.App.Get("/products", product.GetAllProducts)             // done
-	server.App.Get("/products/:id",optionalAuth, product.GetProduct)             //done
-	server.App.Post("/products", auth, product.CreateProduct)       // done
-	server.App.Put("/products/:id", auth, product.UpdateProduct)    //done
-	server.App.Delete("/products/:id", auth, product.DeleteProduct) //done
+	server.App.Get("/products", product.GetAllProducts)               // done
+	server.App.Get("/products/:id", optionalAuth, product.GetProduct) //done
+	server.App.Post("/products", auth, product.CreateProduct)         // done
+	server.App.Put("/products/:id", auth, product.UpdateProduct)      //done
+	server.App.Delete("/products/:id", auth, product.DeleteProduct)   //done
 
 	// Variants
 	variant := handlers.NewVariantHandler(server.Store)
@@ -58,9 +59,13 @@ func SetupRoutes(server *api.Server) error {
 
 	// Reviews
 	review := handlers.NewReviewHandler(server.Store)
-	server.App.Post("/products/:id/reviews", auth, review.UpsertReview)   // done
-	server.App.Get("/products/:id/reviews", review.GetReviews)            // done
-	server.App.Delete("/products/:id/reviews", auth, review.DeleteReview) // done
+	server.App.Post("/products/:id/reviews", auth, review.UpsertReview)
+	server.App.Get("/products/:id/reviews", review.GetReviews)
+	server.App.Get("/products/:id/reviews/rating", review.GetAverageRating)
+	server.App.Delete("/products/:id/reviews", auth, review.DeleteReview)
+	server.App.Get("/admin/reviews/pending", auth, review.GetPendingReviews)
+	server.App.Patch("/admin/reviews/:id/approve", auth, review.ApproveReview)
+	server.App.Patch("/admin/reviews/:id/reject", auth, review.RejectReview)
 
 	// Addresses
 	address := handlers.NewAddressHandler(server.Store)
@@ -88,14 +93,19 @@ func SetupRoutes(server *api.Server) error {
 	order := handlers.NewOrderHandler(server.Store)
 	server.App.Post("/orders", auth, order.CreateOrder)
 	server.App.Get("/orders", auth, order.GetMyOrders)
+	server.App.Get("/admin/orders/:id", order.GetUserOrders) // admin
 	server.App.Get("/orders/:id", auth, order.GetOrderDetail)
 	server.App.Patch("/orders/:id/status", auth, order.UpdateOrderStatus)
 	server.App.Get("/orders/status/:status", auth, order.GetOrdersByStatus)
 
-
 	whishList := handlers.NewWishlistHandler(server.Store)
-	server.App.Get("/wishlist", auth , whishList.GetWishlist)
-	server.App.Post("/wishlist",auth, whishList.ToggleWishlist)
-	server.App.Delete("wishlist/:product_id", auth,whishList.RemoveFromWishlist)
+	server.App.Get("/wishlist", auth, whishList.GetWishlist)
+	server.App.Post("/wishlist", auth, whishList.ToggleWishlist)
+	server.App.Delete("wishlist/:product_id", auth, whishList.RemoveFromWishlist)
+
+	//dashboard
+	admin := handlers.NewAdminHandler(server.Store)
+
+	server.App.Get("/admin/dashboard", auth, admin.GetDashboard)
 	return nil
 }

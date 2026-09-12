@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -106,6 +107,48 @@ func (q *Queries) GetUserByPhone(ctx context.Context, phone string) (User, error
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const searchUsers = `-- name: SearchUsers :many
+SELECT id, full_name, phone, created_at
+FROM users
+WHERE
+    full_name ILIKE '%' || $1::text || '%'
+    OR phone ILIKE '%' || $1::text || '%'
+ORDER BY created_at DESC
+LIMIT 20
+`
+
+type SearchUsersRow struct {
+	ID        uuid.UUID        `json:"id"`
+	FullName  string           `json:"full_name"`
+	Phone     string           `json:"phone"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+func (q *Queries) SearchUsers(ctx context.Context, query string) ([]SearchUsersRow, error) {
+	rows, err := q.db.Query(ctx, searchUsers, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchUsersRow{}
+	for rows.Next() {
+		var i SearchUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.FullName,
+			&i.Phone,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateUser = `-- name: UpdateUser :one

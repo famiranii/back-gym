@@ -94,6 +94,7 @@ type Review struct {
 	Body      pgtype.Text        `json:"body"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	Status    string             `json:"status"`
 }
 
 type Session struct {

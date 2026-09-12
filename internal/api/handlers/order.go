@@ -119,6 +119,15 @@ func (h *OrderHandler) GetMyOrders(c fiber.Ctx) error {
 	}
 	return c.JSON(orders)
 }
+func (h *OrderHandler) GetUserOrders(c fiber.Ctx) error {
+	userID, err := uuid.Parse(c.Params("id"))
+
+	orders, err := h.store.GetOrdersByUser(c.Context(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to get orders"})
+	}
+	return c.JSON(orders)
+}
 
 func (h *OrderHandler) GetOrderDetail(c fiber.Ctx) error {
 	orderID, err := uuid.Parse(c.Params("id"))

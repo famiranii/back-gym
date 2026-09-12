@@ -346,27 +346,49 @@ func (u *UserHandler) UpdateUser(c fiber.Ctx) error {
 	return c.JSON(NewUserResponse(user))
 }
 func (u *UserHandler) Logout(c fiber.Ctx) error {
-    c.Cookie(&fiber.Cookie{
-        Name:     "access_token",
-        Value:     "",
-        Expires:  time.Unix(0, 0),
-        HTTPOnly: true,
-        Secure:   false,
-        SameSite: "Lax",
-        Path:     "/",
-    })
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Lax",
+		Path:     "/",
+	})
 
-    c.Cookie(&fiber.Cookie{
-        Name:     "refresh_token",
-        Value:     "",
-        Expires:  time.Unix(0, 0),
-        HTTPOnly: true,
-        Secure:   false,
-        SameSite: "Lax",
-        Path:     "/",
-    })
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HTTPOnly: true,
+		Secure:   false,
+		SameSite: "Lax",
+		Path:     "/",
+	})
 
-    return c.JSON(fiber.Map{
-        "message": "logged out successfully",
-    })
+	return c.JSON(fiber.Map{
+		"message": "logged out successfully",
+	})
+}
+
+func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
+	q := c.Query("q")
+	if q == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "query param 'q' is required",
+		})
+	}
+
+	users, err := h.Store.SearchUsers(c.Context(), q)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	if users == nil {
+		users = []db.SearchUsersRow{}
+	}
+
+	return c.JSON(users)
 }

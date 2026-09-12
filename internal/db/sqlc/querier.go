@@ -13,6 +13,7 @@ import (
 type Querier interface {
 	AddToCart(ctx context.Context, arg AddToCartParams) (CartItem, error)
 	AddToWishlist(ctx context.Context, arg AddToWishlistParams) (Wishlist, error)
+	ApproveReview(ctx context.Context, id int64) (ApproveReviewRow, error)
 	BlockSession(ctx context.Context, id uuid.UUID) (Session, error)
 	ClearCart(ctx context.Context, userID uuid.UUID) error
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
@@ -38,15 +39,27 @@ type Querier interface {
 	GetAverageRating(ctx context.Context, productID uuid.UUID) (float64, error)
 	GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
+	GetLowStockProducts(ctx context.Context) ([]GetLowStockProductsRow, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (GetOrderByIDRow, error)
 	GetOrderItems(ctx context.Context, orderID uuid.UUID) ([]GetOrderItemsRow, error)
 	GetOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	GetOrdersByUserAndStatus(ctx context.Context, arg GetOrdersByUserAndStatusParams) ([]Order, error)
+	GetPaidOrdersCount(ctx context.Context) (int64, error)
+	GetPendingOrdersCount(ctx context.Context) (int64, error)
+	// =========================================================
+	// Admin Reviews
+	// =========================================================
+	GetPendingReviews(ctx context.Context) ([]GetPendingReviewsRow, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (GetProductByIDRow, error)
 	GetProductImages(ctx context.Context, productID uuid.UUID) ([]ProductImage, error)
+	GetRecentOrders(ctx context.Context) ([]GetRecentOrdersRow, error)
 	GetReviewsByProductID(ctx context.Context, productID uuid.UUID) ([]GetReviewsByProductIDRow, error)
+	GetSalesLast7Days(ctx context.Context) ([]GetSalesLast7DaysRow, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetShippingCost(ctx context.Context) (int64, error)
+	GetTodayOrdersCount(ctx context.Context) (int64, error)
+	GetTodaySales(ctx context.Context) (interface{}, error)
+	GetTopProducts(ctx context.Context) ([]GetTopProductsRow, error)
 	GetUserAddress(ctx context.Context, arg GetUserAddressParams) (UserAddress, error)
 	// internal/db/query/user_address.sql
 	GetUserAddresses(ctx context.Context, userID uuid.UUID) ([]UserAddress, error)
@@ -56,8 +69,10 @@ type Querier interface {
 	GetVariantsByProductID(ctx context.Context, productID uuid.UUID) ([]ProductVariant, error)
 	GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]GetWishlistByUserIDRow, error)
 	IsInWishlist(ctx context.Context, arg IsInWishlistParams) (bool, error)
+	RejectReview(ctx context.Context, id int64) (RejectReviewRow, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	RemoveFromWishlist(ctx context.Context, arg RemoveFromWishlistParams) error
+	SearchUsers(ctx context.Context, query string) ([]SearchUsersRow, error)
 	SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) error
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)
 	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
@@ -68,7 +83,10 @@ type Querier interface {
 	UpdateVariant(ctx context.Context, arg UpdateVariantParams) (ProductVariant, error)
 	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariant, error)
 	// internal/db/query/review.sql
-	UpsertReview(ctx context.Context, arg UpsertReviewParams) (Review, error)
+	// =========================================================
+	// User Reviews
+	// =========================================================
+	UpsertReview(ctx context.Context, arg UpsertReviewParams) (UpsertReviewRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -12,9 +12,55 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const approveReview = `-- name: ApproveReview :one
+UPDATE reviews
+SET
+    status = 'approved',
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+  AND status = 'pending'
+RETURNING
+    id,
+    product_id,
+    user_id,
+    rating,
+    body,
+    status,
+    created_at,
+    updated_at
+`
+
+type ApproveReviewRow struct {
+	ID        int64              `json:"id"`
+	ProductID uuid.UUID          `json:"product_id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Rating    pgtype.Int2        `json:"rating"`
+	Body      pgtype.Text        `json:"body"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ApproveReview(ctx context.Context, id int64) (ApproveReviewRow, error) {
+	row := q.db.QueryRow(ctx, approveReview, id)
+	var i ApproveReviewRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.UserID,
+		&i.Rating,
+		&i.Body,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const deleteReview = `-- name: DeleteReview :exec
 DELETE FROM reviews
-WHERE product_id = $1 AND user_id = $2
+WHERE product_id = $1
+  AND user_id = $2
 `
 
 type DeleteReviewParams struct {
@@ -28,7 +74,12 @@ func (q *Queries) DeleteReview(ctx context.Context, arg DeleteReviewParams) erro
 }
 
 const getAverageRating = `-- name: GetAverageRating :one
-SELECT COALESCE(AVG(rating::FLOAT), 0)::FLOAT AS average_rating
+SELECT
+    COALESCE(
+        AVG(rating::FLOAT)
+        FILTER (WHERE status = 'approved'),
+        0
+    )::FLOAT AS average_rating
 FROM reviews
 WHERE product_id = $1
 `
@@ -40,19 +91,90 @@ func (q *Queries) GetAverageRating(ctx context.Context, productID uuid.UUID) (fl
 	return average_rating, err
 }
 
+const getPendingReviews = `-- name: GetPendingReviews :many
+
+SELECT
+    r.id,
+    r.product_id,
+    r.user_id,
+    u.full_name AS user_name,
+    p.name AS product_name,
+    r.rating,
+    r.body,
+    r.status,
+    r.created_at,
+    r.updated_at
+FROM reviews r
+JOIN users u
+    ON u.id = r.user_id
+JOIN products p
+    ON p.id = r.product_id
+WHERE r.status = 'pending'
+ORDER BY r.created_at ASC
+`
+
+type GetPendingReviewsRow struct {
+	ID          int64              `json:"id"`
+	ProductID   uuid.UUID          `json:"product_id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	UserName    string             `json:"user_name"`
+	ProductName string             `json:"product_name"`
+	Rating      pgtype.Int2        `json:"rating"`
+	Body        pgtype.Text        `json:"body"`
+	Status      string             `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+// =========================================================
+// Admin Reviews
+// =========================================================
+func (q *Queries) GetPendingReviews(ctx context.Context) ([]GetPendingReviewsRow, error) {
+	rows, err := q.db.Query(ctx, getPendingReviews)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetPendingReviewsRow{}
+	for rows.Next() {
+		var i GetPendingReviewsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProductID,
+			&i.UserID,
+			&i.UserName,
+			&i.ProductName,
+			&i.Rating,
+			&i.Body,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getReviewsByProductID = `-- name: GetReviewsByProductID :many
 SELECT
     r.id,
     r.product_id,
     r.user_id,
-    u.full_name,
+    u.full_name AS user_name,
     r.rating,
     r.body,
     r.created_at,
     r.updated_at
 FROM reviews r
-JOIN users u ON u.id = r.user_id
+JOIN users u
+    ON u.id = r.user_id
 WHERE r.product_id = $1
+  AND r.status = 'approved'
 ORDER BY r.created_at DESC
 `
 
@@ -60,7 +182,7 @@ type GetReviewsByProductIDRow struct {
 	ID        int64              `json:"id"`
 	ProductID uuid.UUID          `json:"product_id"`
 	UserID    uuid.UUID          `json:"user_id"`
-	FullName  string             `json:"full_name"`
+	UserName  string             `json:"user_name"`
 	Rating    pgtype.Int2        `json:"rating"`
 	Body      pgtype.Text        `json:"body"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
@@ -80,7 +202,7 @@ func (q *Queries) GetReviewsByProductID(ctx context.Context, productID uuid.UUID
 			&i.ID,
 			&i.ProductID,
 			&i.UserID,
-			&i.FullName,
+			&i.UserName,
 			&i.Rating,
 			&i.Body,
 			&i.CreatedAt,
@@ -96,16 +218,84 @@ func (q *Queries) GetReviewsByProductID(ctx context.Context, productID uuid.UUID
 	return items, nil
 }
 
+const rejectReview = `-- name: RejectReview :one
+UPDATE reviews
+SET
+    status = 'rejected',
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+  AND status = 'pending'
+RETURNING
+    id,
+    product_id,
+    user_id,
+    rating,
+    body,
+    status,
+    created_at,
+    updated_at
+`
+
+type RejectReviewRow struct {
+	ID        int64              `json:"id"`
+	ProductID uuid.UUID          `json:"product_id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Rating    pgtype.Int2        `json:"rating"`
+	Body      pgtype.Text        `json:"body"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) RejectReview(ctx context.Context, id int64) (RejectReviewRow, error) {
+	row := q.db.QueryRow(ctx, rejectReview, id)
+	var i RejectReviewRow
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.UserID,
+		&i.Rating,
+		&i.Body,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const upsertReview = `-- name: UpsertReview :one
 
-INSERT INTO reviews (product_id, user_id, rating, body, updated_at)
-VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+
+
+INSERT INTO reviews (
+    product_id,
+    user_id,
+    rating,
+    body,
+    updated_at
+)
+VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    CURRENT_TIMESTAMP
+)
 ON CONFLICT (product_id, user_id) DO UPDATE
 SET
-    rating     = EXCLUDED.rating,
-    body       = EXCLUDED.body,
+    rating = EXCLUDED.rating,
+    body = EXCLUDED.body,
+    status = 'pending',
     updated_at = CURRENT_TIMESTAMP
-RETURNING id, product_id, user_id, rating, body, created_at, updated_at
+RETURNING
+    id,
+    product_id,
+    user_id,
+    rating,
+    body,
+    status,
+    created_at,
+    updated_at
 `
 
 type UpsertReviewParams struct {
@@ -115,21 +305,36 @@ type UpsertReviewParams struct {
 	Body      pgtype.Text `json:"body"`
 }
 
+type UpsertReviewRow struct {
+	ID        int64              `json:"id"`
+	ProductID uuid.UUID          `json:"product_id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Rating    pgtype.Int2        `json:"rating"`
+	Body      pgtype.Text        `json:"body"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 // internal/db/query/review.sql
-func (q *Queries) UpsertReview(ctx context.Context, arg UpsertReviewParams) (Review, error) {
+// =========================================================
+// User Reviews
+// =========================================================
+func (q *Queries) UpsertReview(ctx context.Context, arg UpsertReviewParams) (UpsertReviewRow, error) {
 	row := q.db.QueryRow(ctx, upsertReview,
 		arg.ProductID,
 		arg.UserID,
 		arg.Rating,
 		arg.Body,
 	)
-	var i Review
+	var i UpsertReviewRow
 	err := row.Scan(
 		&i.ID,
 		&i.ProductID,
 		&i.UserID,
 		&i.Rating,
 		&i.Body,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
