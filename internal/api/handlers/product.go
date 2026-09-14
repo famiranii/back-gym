@@ -267,21 +267,106 @@ func (h *ProductHandler) GetAllProducts(c fiber.Ctx) error {
 	if limit <= 0 || limit > 100 {
 		limit = 10
 	}
+
 	if offset < 0 {
 		offset = 0
 	}
 
-	products, err := h.Store.GetAllProducts(c.Context(), db.GetAllProductsParams{
-		Limit:  limit,
-		Offset: offset,
-	})
+	sort := c.Query("sort", "newest")
+
+	switch sort {
+	case "newest",
+		"price_asc",
+		"price_desc",
+		"discount",
+		"best_selling":
+	default:
+		sort = "newest"
+	}
+
+	products, err := h.Store.GetAllProducts(
+		c.Context(),
+		db.GetAllProductsParams{
+			Sort:   sort,
+			Limit:  limit,
+			Offset: offset,
+		},
+	)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{"error": err.Error()},
+		)
 	}
 
 	return c.JSON(products)
 }
+func (h *ProductHandler) SearchProducts(c fiber.Ctx) error {
+	q := c.Query("q")
 
+	if q == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "query param 'q' is required"},
+		)
+	}
+
+	limit := int32(10)
+	offset := int32(0)
+
+	if value := c.Query("limit"); value != "" {
+		if parsed, err := strconv.ParseInt(value, 10, 32); err == nil {
+			limit = int32(parsed)
+		}
+	}
+
+	if value := c.Query("offset"); value != "" {
+		if parsed, err := strconv.ParseInt(value, 10, 32); err == nil {
+			offset = int32(parsed)
+		}
+	}
+
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	sort := c.Query("sort", "newest")
+
+	switch sort {
+	case "newest",
+		"price_asc",
+		"price_desc",
+		"discount",
+		"best_selling":
+	default:
+		sort = "newest"
+	}
+	products, err := h.Store.SearchProducts(
+		c.Context(),
+		db.SearchProductsParams{
+			Query: pgtype.Text{
+				String: q,
+				Valid:  true,
+			},
+			Sort:   sort,
+			Limit:  limit,
+			Offset: offset,
+		},
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{"error": err.Error()},
+		)
+	}
+
+	if products == nil {
+		products = []db.SearchProductsRow{}
+	}
+
+	return c.JSON(products)
+}
 func (h *ProductHandler) DeleteProduct(c fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {

@@ -72,6 +72,7 @@ type Querier interface {
 	RejectReview(ctx context.Context, id int64) (RejectReviewRow, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	RemoveFromWishlist(ctx context.Context, arg RemoveFromWishlistParams) error
+	SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error)
 	SearchUsers(ctx context.Context, query string) ([]SearchUsersRow, error)
 	SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) error
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)

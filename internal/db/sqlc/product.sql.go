@@ -62,21 +62,91 @@ func (q *Queries) DeleteProduct(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAllProducts = `-- name: GetAllProducts :many
-SELECT p.id, p.name, p.description, p.price, p.discount, p.category_id, p.is_active, p.created_at, p.updated_at, c.name as category_name,
-  (SELECT url FROM product_images 
-   WHERE product_id = p.id AND is_primary = true 
-   LIMIT 1) as primary_image,
-   p.price - (p.price * p.discount / 100) AS final_price
+SELECT
+    p.id,
+    p.name,
+    p.description,
+    p.price,
+    p.discount,
+    p.category_id,
+    p.is_active,
+    p.created_at,
+    p.updated_at,
+
+    COALESCE(
+        (
+            SELECT pi.url
+            FROM product_images pi
+            WHERE pi.product_id = p.id
+              AND pi.is_primary = TRUE
+            ORDER BY pi.created_at ASC
+            LIMIT 1
+        ),
+        ''
+    ) AS primary_image,
+
+    (
+        p.price - (p.price * p.discount / 100)
+    )::bigint AS final_price,
+
+    COALESCE(
+        (
+            SELECT SUM(oi.quantity)
+            FROM order_items oi
+            JOIN orders o
+                ON o.id = oi.order_id
+            WHERE oi.product_id = p.id
+              AND o.status IN ('paid', 'shipped', 'delivered')
+        ),
+        0
+    )::bigint AS sold_count
+
 FROM products p
-LEFT JOIN categories c ON c.id = p.category_id
-WHERE p.is_active = true
-ORDER BY p.created_at DESC
-LIMIT $1 OFFSET $2
+
+WHERE p.is_active = TRUE
+
+ORDER BY
+    CASE
+        WHEN $1::text = 'price_asc'
+        THEN p.price - (p.price * p.discount / 100)
+    END ASC NULLS LAST,
+
+    CASE
+        WHEN $1::text = 'price_desc'
+        THEN p.price - (p.price * p.discount / 100)
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN $1::text = 'discount'
+        THEN p.discount
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN $1::text = 'best_selling'
+        THEN COALESCE(
+            (
+                SELECT SUM(oi.quantity)
+                FROM order_items oi
+                JOIN orders o
+                    ON o.id = oi.order_id
+                WHERE oi.product_id = p.id
+                  AND o.status IN ('paid', 'shipped', 'delivered')
+            ),
+            0
+        )
+    END DESC NULLS LAST,
+
+    p.created_at DESC,
+    p.id DESC
+
+LIMIT $3
+OFFSET $2
 `
 
 type GetAllProductsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Sort   string `json:"sort"`
+	Offset int32  `json:"offset"`
+	Limit  int32  `json:"limit"`
 }
 
 type GetAllProductsRow struct {
@@ -89,13 +159,13 @@ type GetAllProductsRow struct {
 	IsActive     bool             `json:"is_active"`
 	CreatedAt    pgtype.Timestamp `json:"created_at"`
 	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
-	CategoryName pgtype.Text      `json:"category_name"`
-	PrimaryImage string           `json:"primary_image"`
-	FinalPrice   int32            `json:"final_price"`
+	PrimaryImage interface{}      `json:"primary_image"`
+	FinalPrice   int64            `json:"final_price"`
+	SoldCount    int64            `json:"sold_count"`
 }
 
 func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error) {
-	rows, err := q.db.Query(ctx, getAllProducts, arg.Limit, arg.Offset)
+	rows, err := q.db.Query(ctx, getAllProducts, arg.Sort, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +183,9 @@ func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) 
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.CategoryName,
 			&i.PrimaryImage,
 			&i.FinalPrice,
+			&i.SoldCount,
 		); err != nil {
 			return nil, err
 		}
@@ -164,6 +234,152 @@ func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (GetProductB
 		&i.FinalPrice,
 	)
 	return i, err
+}
+
+const searchProducts = `-- name: SearchProducts :many
+SELECT
+    p.id,
+    p.name,
+    p.description,
+    p.price,
+    p.discount,
+    p.category_id,
+    p.is_active,
+    p.created_at,
+    p.updated_at,
+
+    COALESCE(
+        (
+            SELECT pi.url
+            FROM product_images pi
+            WHERE pi.product_id = p.id
+              AND pi.is_primary = TRUE
+            ORDER BY pi.created_at ASC
+            LIMIT 1
+        ),
+        ''
+    ) AS primary_image,
+
+    (
+        p.price - (p.price * p.discount / 100)
+    )::bigint AS final_price,
+
+    COALESCE(
+        (
+            SELECT SUM(oi.quantity)
+            FROM order_items oi
+            JOIN orders o
+                ON o.id = oi.order_id
+            WHERE oi.product_id = p.id
+              AND o.status IN ('paid', 'shipped', 'delivered')
+        ),
+        0
+    )::bigint AS sold_count
+
+FROM products p
+
+WHERE p.is_active = TRUE
+  AND (
+      p.name ILIKE '%' || $1 || '%'
+      OR p.description ILIKE '%' || $1 || '%'
+  )
+
+ORDER BY
+    CASE
+        WHEN $2::text = 'price_asc'
+        THEN p.price - (p.price * p.discount / 100)
+    END ASC NULLS LAST,
+
+    CASE
+        WHEN $2::text = 'price_desc'
+        THEN p.price - (p.price * p.discount / 100)
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN $2::text = 'discount'
+        THEN p.discount
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN $2::text = 'best_selling'
+        THEN COALESCE(
+            (
+                SELECT SUM(oi.quantity)
+                FROM order_items oi
+                JOIN orders o
+                    ON o.id = oi.order_id
+                WHERE oi.product_id = p.id
+                  AND o.status IN ('paid', 'shipped', 'delivered')
+            ),
+            0
+        )
+    END DESC NULLS LAST,
+
+    p.created_at DESC,
+    p.id DESC
+
+LIMIT $4
+OFFSET $3
+`
+
+type SearchProductsParams struct {
+	Query  pgtype.Text `json:"query"`
+	Sort   string      `json:"sort"`
+	Offset int32       `json:"offset"`
+	Limit  int32       `json:"limit"`
+}
+
+type SearchProductsRow struct {
+	ID           uuid.UUID        `json:"id"`
+	Name         string           `json:"name"`
+	Description  pgtype.Text      `json:"description"`
+	Price        pgtype.Numeric   `json:"price"`
+	Discount     pgtype.Numeric   `json:"discount"`
+	CategoryID   pgtype.UUID      `json:"category_id"`
+	IsActive     bool             `json:"is_active"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+	PrimaryImage interface{}      `json:"primary_image"`
+	FinalPrice   int64            `json:"final_price"`
+	SoldCount    int64            `json:"sold_count"`
+}
+
+func (q *Queries) SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error) {
+	rows, err := q.db.Query(ctx, searchProducts,
+		arg.Query,
+		arg.Sort,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchProductsRow{}
+	for rows.Next() {
+		var i SearchProductsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Discount,
+			&i.CategoryID,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PrimaryImage,
+			&i.FinalPrice,
+			&i.SoldCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateProduct = `-- name: UpdateProduct :one

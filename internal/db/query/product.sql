@@ -10,18 +10,172 @@ SELECT
 FROM products p
 WHERE p.id = $1;
 
-
 -- name: GetAllProducts :many
-SELECT p.*, c.name as category_name,
-  (SELECT url FROM product_images 
-   WHERE product_id = p.id AND is_primary = true 
-   LIMIT 1) as primary_image,
-   p.price - (p.price * p.discount / 100) AS final_price
+SELECT
+    p.id,
+    p.name,
+    p.description,
+    p.price,
+    p.discount,
+    p.category_id,
+    p.is_active,
+    p.created_at,
+    p.updated_at,
+
+    COALESCE(
+        (
+            SELECT pi.url
+            FROM product_images pi
+            WHERE pi.product_id = p.id
+              AND pi.is_primary = TRUE
+            ORDER BY pi.created_at ASC
+            LIMIT 1
+        ),
+        ''
+    ) AS primary_image,
+
+    (
+        p.price - (p.price * p.discount / 100)
+    )::bigint AS final_price,
+
+    COALESCE(
+        (
+            SELECT SUM(oi.quantity)
+            FROM order_items oi
+            JOIN orders o
+                ON o.id = oi.order_id
+            WHERE oi.product_id = p.id
+              AND o.status IN ('paid', 'shipped', 'delivered')
+        ),
+        0
+    )::bigint AS sold_count
+
 FROM products p
-LEFT JOIN categories c ON c.id = p.category_id
-WHERE p.is_active = true
-ORDER BY p.created_at DESC
-LIMIT $1 OFFSET $2;
+
+WHERE p.is_active = TRUE
+
+ORDER BY
+    CASE
+        WHEN sqlc.arg('sort')::text = 'price_asc'
+        THEN p.price - (p.price * p.discount / 100)
+    END ASC NULLS LAST,
+
+    CASE
+        WHEN sqlc.arg('sort')::text = 'price_desc'
+        THEN p.price - (p.price * p.discount / 100)
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN sqlc.arg('sort')::text = 'discount'
+        THEN p.discount
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN sqlc.arg('sort')::text = 'best_selling'
+        THEN COALESCE(
+            (
+                SELECT SUM(oi.quantity)
+                FROM order_items oi
+                JOIN orders o
+                    ON o.id = oi.order_id
+                WHERE oi.product_id = p.id
+                  AND o.status IN ('paid', 'shipped', 'delivered')
+            ),
+            0
+        )
+    END DESC NULLS LAST,
+
+    p.created_at DESC,
+    p.id DESC
+
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
+
+
+-- name: SearchProducts :many
+SELECT
+    p.id,
+    p.name,
+    p.description,
+    p.price,
+    p.discount,
+    p.category_id,
+    p.is_active,
+    p.created_at,
+    p.updated_at,
+
+    COALESCE(
+        (
+            SELECT pi.url
+            FROM product_images pi
+            WHERE pi.product_id = p.id
+              AND pi.is_primary = TRUE
+            ORDER BY pi.created_at ASC
+            LIMIT 1
+        ),
+        ''
+    ) AS primary_image,
+
+    (
+        p.price - (p.price * p.discount / 100)
+    )::bigint AS final_price,
+
+    COALESCE(
+        (
+            SELECT SUM(oi.quantity)
+            FROM order_items oi
+            JOIN orders o
+                ON o.id = oi.order_id
+            WHERE oi.product_id = p.id
+              AND o.status IN ('paid', 'shipped', 'delivered')
+        ),
+        0
+    )::bigint AS sold_count
+
+FROM products p
+
+WHERE p.is_active = TRUE
+  AND (
+      p.name ILIKE '%' || sqlc.arg('query') || '%'
+      OR p.description ILIKE '%' || sqlc.arg('query') || '%'
+  )
+
+ORDER BY
+    CASE
+        WHEN sqlc.arg('sort')::text = 'price_asc'
+        THEN p.price - (p.price * p.discount / 100)
+    END ASC NULLS LAST,
+
+    CASE
+        WHEN sqlc.arg('sort')::text = 'price_desc'
+        THEN p.price - (p.price * p.discount / 100)
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN sqlc.arg('sort')::text = 'discount'
+        THEN p.discount
+    END DESC NULLS LAST,
+
+    CASE
+        WHEN sqlc.arg('sort')::text = 'best_selling'
+        THEN COALESCE(
+            (
+                SELECT SUM(oi.quantity)
+                FROM order_items oi
+                JOIN orders o
+                    ON o.id = oi.order_id
+                WHERE oi.product_id = p.id
+                  AND o.status IN ('paid', 'shipped', 'delivered')
+            ),
+            0
+        )
+    END DESC NULLS LAST,
+
+    p.created_at DESC,
+    p.id DESC
+
+LIMIT sqlc.arg('limit')
+OFFSET sqlc.arg('offset');
 
 -- name: UpdateProduct :one
 UPDATE products

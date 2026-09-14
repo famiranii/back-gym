@@ -25,7 +25,7 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Post("/register", user.RegisterUser)
 	server.App.Post("/login", user.LoginUser)
 	server.App.Post("/logout", user.Logout)
-	server.App.Get("/users",adminAuth, user.GetAllUsers)
+	server.App.Get("/users", adminAuth, user.GetAllUsers)
 	server.App.Get("/users/me", auth, user.GetMe)
 	server.App.Get("/users/search", adminAuth, user.SearchUsers) // ← قبل از :id
 	server.App.Get("/users/:id", adminAuth, user.GetUser)
@@ -33,15 +33,16 @@ func SetupRoutes(server *api.Server) error {
 
 	// Products
 	product := handlers.NewProductHandler(server.Store)
-	server.App.Get("/products", product.GetAllProducts)               // done
-	server.App.Get("/products/:id", optionalAuth, product.GetProduct) //done
-	server.App.Post("/products", adminAuth, product.CreateProduct)         // done
-	server.App.Put("/products/:id", adminAuth, product.UpdateProduct)      //done
-	server.App.Delete("/products/:id", adminAuth, product.DeleteProduct)   //done
+	server.App.Get("/products", product.GetAllProducts)                  // done
+	server.App.Get("/products/search", product.SearchProducts) //done
+	server.App.Get("/products/:id", optionalAuth, product.GetProduct)    //done
+	server.App.Post("/products", adminAuth, product.CreateProduct)       // done
+	server.App.Put("/products/:id", adminAuth, product.UpdateProduct)    //done
+	server.App.Delete("/products/:id", adminAuth, product.DeleteProduct) //done
 
 	// Variants
 	variant := handlers.NewVariantHandler(server.Store)
-	server.App.Get("/products/:id/variants",adminAuth, variant.GetVariantsByProduct)
+	server.App.Get("/products/:id/variants", adminAuth, variant.GetVariantsByProduct)
 	server.App.Post("/products/:id/variants", adminAuth, variant.CreateVariant)
 	server.App.Put("/variants/:id", adminAuth, variant.UpdateVariantStock)
 	server.App.Delete("/variants/:id", adminAuth, variant.DeleteVariant)
@@ -49,8 +50,8 @@ func SetupRoutes(server *api.Server) error {
 	//category
 	category := handlers.NewCategoryHandler(server.Store)
 
-	server.App.Get("/categories", category.GetAllCategories)            //done
-	server.App.Get("/categories/:id", category.GetCategoryByID)         // done
+	server.App.Get("/categories", category.GetAllCategories)                 //done
+	server.App.Get("/categories/:id", category.GetCategoryByID)              // done
 	server.App.Post("/categories", adminAuth, category.CreateCategory)       // done
 	server.App.Delete("/categories/:id", adminAuth, category.DeleteCategory) //done
 
