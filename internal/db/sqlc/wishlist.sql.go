@@ -13,10 +13,11 @@ import (
 )
 
 const addToWishlist = `-- name: AddToWishlist :one
+
 INSERT INTO wishlists (user_id, product_id)
 VALUES ($1, $2)
 ON CONFLICT (user_id, product_id) DO NOTHING
-RETURNING id, user_id, product_id, created_at
+RETURNING user_id, product_id, created_at
 `
 
 type AddToWishlistParams struct {
@@ -27,34 +28,31 @@ type AddToWishlistParams struct {
 func (q *Queries) AddToWishlist(ctx context.Context, arg AddToWishlistParams) (Wishlist, error) {
 	row := q.db.QueryRow(ctx, addToWishlist, arg.UserID, arg.ProductID)
 	var i Wishlist
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.ProductID,
-		&i.CreatedAt,
-	)
+	err := row.Scan(&i.UserID, &i.ProductID, &i.CreatedAt)
 	return i, err
 }
 
 const getWishlistByUserID = `-- name: GetWishlistByUserID :many
 
 SELECT
-    w.id,
-    w.created_at,
     p.id AS id,
-    p.name AS name,
-    p.price AS price,
-    p.discount AS discount,
-    p.is_active AS is_active,
+    w.created_at,
+    p.name,
+    p.price,
+    p.discount,
+    p.is_active,
     c.name AS category_name,
     (
-        SELECT url
-        FROM product_images
-        WHERE product_id = p.id
-          AND is_primary = true
+        SELECT pi.url
+        FROM product_images pi
+        WHERE pi.product_id = p.id
+          AND pi.is_primary = TRUE
+        ORDER BY pi.created_at ASC
         LIMIT 1
     ) AS primary_image,
-    p.price - (p.price * p.discount / 100) AS final_price
+    (
+        p.price - (p.price * p.discount / 100)
+    )::bigint AS final_price
 FROM wishlists w
 JOIN products p
     ON p.id = w.product_id
@@ -67,14 +65,13 @@ ORDER BY w.created_at DESC
 type GetWishlistByUserIDRow struct {
 	ID           uuid.UUID          `json:"id"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	ID_2         uuid.UUID          `json:"id_2"`
 	Name         string             `json:"name"`
 	Price        pgtype.Numeric     `json:"price"`
 	Discount     pgtype.Numeric     `json:"discount"`
 	IsActive     bool               `json:"is_active"`
 	CategoryName pgtype.Text        `json:"category_name"`
 	PrimaryImage string             `json:"primary_image"`
-	FinalPrice   int32              `json:"final_price"`
+	FinalPrice   int64              `json:"final_price"`
 }
 
 func (q *Queries) GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]GetWishlistByUserIDRow, error) {
@@ -89,7 +86,6 @@ func (q *Queries) GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
-			&i.ID_2,
 			&i.Name,
 			&i.Price,
 			&i.Discount,
@@ -109,9 +105,12 @@ func (q *Queries) GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]
 }
 
 const isInWishlist = `-- name: IsInWishlist :one
+
 SELECT EXISTS (
-    SELECT 1 FROM wishlists
-    WHERE user_id = $1 AND product_id = $2
+    SELECT 1
+    FROM wishlists
+    WHERE user_id = $1
+      AND product_id = $2
 ) AS exists
 `
 
@@ -128,8 +127,10 @@ func (q *Queries) IsInWishlist(ctx context.Context, arg IsInWishlistParams) (boo
 }
 
 const removeFromWishlist = `-- name: RemoveFromWishlist :exec
+
 DELETE FROM wishlists
-WHERE user_id = $1 AND product_id = $2
+WHERE user_id = $1
+  AND product_id = $2
 `
 
 type RemoveFromWishlistParams struct {

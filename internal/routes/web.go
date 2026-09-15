@@ -33,12 +33,14 @@ func SetupRoutes(server *api.Server) error {
 
 	// Products
 	product := handlers.NewProductHandler(server.Store)
-	server.App.Get("/products", product.GetAllProducts)                  // done
-	server.App.Get("/products/search", product.SearchProducts) //done
-	server.App.Get("/products/:id", optionalAuth, product.GetProduct)    //done
-	server.App.Post("/products", adminAuth, product.CreateProduct)       // done
-	server.App.Put("/products/:id", adminAuth, product.UpdateProduct)    //done
-	server.App.Delete("/products/:id", adminAuth, product.DeleteProduct) //done
+
+	server.App.Get("/products", product.GetAllProducts)
+	server.App.Get("/products/search", product.SearchProducts)
+	server.App.Get("/products/:id", optionalAuth, product.GetProduct)
+	server.App.Get("/categories/:name/products", product.GetProductsByCategory)
+	server.App.Post("/products", adminAuth, product.CreateProduct)
+	server.App.Put("/products/:id", adminAuth, product.UpdateProduct)
+	server.App.Delete("/products/:id", adminAuth, product.DeleteProduct)
 
 	// Variants
 	variant := handlers.NewVariantHandler(server.Store)
@@ -68,6 +70,7 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Get("/admin/reviews/pending", adminAuth, review.GetPendingReviews)
 	server.App.Patch("/admin/reviews/:id/approve", adminAuth, review.ApproveReview)
 	server.App.Patch("/admin/reviews/:id/reject", adminAuth, review.RejectReview)
+	server.App.Delete("/admin/reviews/:id", adminAuth, review.AdminDeleteReview)
 
 	// Addresses
 	address := handlers.NewAddressHandler(server.Store)

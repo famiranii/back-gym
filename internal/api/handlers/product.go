@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"errors"
+	"fmt"
+	"net/url"
 	"strconv"
 
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
 	"github.com/famiranii/back-gym.git/internal/token"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -60,7 +64,15 @@ func (h *ProductHandler) CreateProduct(c fiber.Ctx) error {
 
 	result, err := h.Store.CreateProductWithVariants(c.Context(), arg)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		if errors.Is(err, pgx.ErrNoRows) {
+			return c.Status(fiber.StatusConflict).JSON(
+				fiber.Map{"error": "product name already exists"},
+			)
+		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{"error": err.Error()},
+		)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(result)
@@ -378,4 +390,80 @@ func (h *ProductHandler) DeleteProduct(c fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *ProductHandler) GetProductsByCategory(c fiber.Ctx) error {
+	categoryName := c.Params("name")
+
+	if categoryName == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "category name is required"},
+		)
+	}
+
+	categoryName, err := url.QueryUnescape(categoryName)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "invalid category name"},
+		)
+	}
+
+	limit := int32(10)
+	offset := int32(0)
+
+	if value := c.Query("limit"); value != "" {
+		if parsed, err := strconv.ParseInt(value, 10, 32); err == nil {
+			limit = int32(parsed)
+		}
+	}
+
+	if value := c.Query("offset"); value != "" {
+		if parsed, err := strconv.ParseInt(value, 10, 32); err == nil {
+			offset = int32(parsed)
+		}
+	}
+
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+
+	if offset < 0 {
+		offset = 0
+	}
+
+	sort := c.Query("sort", "newest")
+
+	switch sort {
+	case "newest",
+		"price_asc",
+		"price_desc",
+		"discount",
+		"best_selling":
+	default:
+		sort = "newest"
+	}
+
+	products, err := h.Store.GetProductsByCategoryName(
+		c.Context(),
+		db.GetProductsByCategoryNameParams{
+			CategoryName: categoryName,
+			Sort:         sort,
+			Limit:        limit,
+			Offset:       offset,
+		},
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(
+			fiber.Map{"error": err.Error()},
+		)
+	}
+
+	if products == nil {
+		products = []db.GetProductsByCategoryNameRow{}
+	}
+
+	fmt.Println("CATEGORY NAME:", categoryName)
+	fmt.Println("PRODUCT COUNT:", len(products))
+
+	return c.JSON(products)
 }

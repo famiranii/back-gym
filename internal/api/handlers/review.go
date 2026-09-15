@@ -184,6 +184,26 @@ func (h *ReviewHandler) DeleteReview(c fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
+func (h *ReviewHandler) AdminDeleteReview(c fiber.Ctx) error {
+	reviewID, err := strconv.ParseInt(c.Params("id"), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid review_id",
+		})
+	}
+
+	err = h.Store.DeleteReviewByID(
+		c.Context(),
+		reviewID,
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to delete review",
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
 
 // =========================================================
 // Admin - Get Pending Reviews

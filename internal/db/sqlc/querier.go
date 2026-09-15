@@ -30,6 +30,7 @@ type Querier interface {
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteProductImage(ctx context.Context, id uuid.UUID) error
 	DeleteReview(ctx context.Context, arg DeleteReviewParams) error
+	DeleteReviewByID(ctx context.Context, id int64) error
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteUserAddress(ctx context.Context, arg DeleteUserAddressParams) error
 	DeleteVariant(ctx context.Context, id uuid.UUID) error
@@ -52,6 +53,7 @@ type Querier interface {
 	GetPendingReviews(ctx context.Context) ([]GetPendingReviewsRow, error)
 	GetProductByID(ctx context.Context, id uuid.UUID) (GetProductByIDRow, error)
 	GetProductImages(ctx context.Context, productID uuid.UUID) ([]ProductImage, error)
+	GetProductsByCategoryName(ctx context.Context, arg GetProductsByCategoryNameParams) ([]GetProductsByCategoryNameRow, error)
 	GetRecentOrders(ctx context.Context) ([]GetRecentOrdersRow, error)
 	GetReviewsByProductID(ctx context.Context, productID uuid.UUID) ([]GetReviewsByProductIDRow, error)
 	GetSalesLast7Days(ctx context.Context) ([]GetSalesLast7DaysRow, error)

@@ -131,3 +131,8 @@ RETURNING
     status,
     created_at,
     updated_at;
+
+
+-- name: DeleteReviewByID :exec
+DELETE FROM reviews
+WHERE id = $1;

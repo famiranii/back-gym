@@ -140,7 +140,6 @@ type UserAddress struct {
 }
 
 type Wishlist struct {
-	ID        uuid.UUID          `json:"id"`
 	UserID    uuid.UUID          `json:"user_id"`
 	ProductID uuid.UUID          `json:"product_id"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`

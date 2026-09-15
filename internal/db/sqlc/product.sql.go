@@ -236,6 +236,137 @@ func (q *Queries) GetProductByID(ctx context.Context, id uuid.UUID) (GetProductB
 	return i, err
 }
 
+const getProductsByCategoryName = `-- name: GetProductsByCategoryName :many
+SELECT
+    p.id,
+    p.name,
+    p.description,
+    p.price,
+    p.discount,
+    p.category_id,
+    p.is_active,
+    p.created_at,
+    p.updated_at,
+    COALESCE(
+        (
+            SELECT pi.url
+            FROM product_images pi
+            WHERE pi.product_id = p.id
+              AND pi.is_primary = TRUE
+            ORDER BY pi.created_at ASC
+            LIMIT 1
+        ),
+        ''
+    ) AS primary_image,
+    (
+        p.price - (p.price * p.discount / 100)
+    )::bigint AS final_price,
+    COALESCE(
+        (
+            SELECT SUM(oi.quantity)
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE oi.product_id = p.id
+              AND o.status IN ('paid', 'shipped', 'delivered')
+        ),
+        0
+    )::bigint AS sold_count
+FROM products p
+JOIN categories c ON c.id = p.category_id
+WHERE p.is_active = TRUE
+  AND c.name = $1::text
+ORDER BY
+    CASE
+        WHEN $2::text = 'price_asc'
+        THEN p.price - (p.price * p.discount / 100)
+    END ASC NULLS LAST,
+    CASE
+        WHEN $2::text = 'price_desc'
+        THEN p.price - (p.price * p.discount / 100)
+    END DESC NULLS LAST,
+    CASE
+        WHEN $2::text = 'discount'
+        THEN p.discount
+    END DESC NULLS LAST,
+    CASE
+        WHEN $2::text = 'best_selling'
+        THEN COALESCE(
+            (
+                SELECT SUM(oi.quantity)
+                FROM order_items oi
+                JOIN orders o ON o.id = oi.order_id
+                WHERE oi.product_id = p.id
+                  AND o.status IN ('paid', 'shipped', 'delivered')
+            ),
+            0
+        )
+    END DESC NULLS LAST,
+    p.created_at DESC,
+    p.id DESC
+LIMIT $4
+OFFSET $3
+`
+
+type GetProductsByCategoryNameParams struct {
+	CategoryName string `json:"category_name"`
+	Sort         string `json:"sort"`
+	Offset       int32  `json:"offset"`
+	Limit        int32  `json:"limit"`
+}
+
+type GetProductsByCategoryNameRow struct {
+	ID           uuid.UUID        `json:"id"`
+	Name         string           `json:"name"`
+	Description  pgtype.Text      `json:"description"`
+	Price        pgtype.Numeric   `json:"price"`
+	Discount     pgtype.Numeric   `json:"discount"`
+	CategoryID   pgtype.UUID      `json:"category_id"`
+	IsActive     bool             `json:"is_active"`
+	CreatedAt    pgtype.Timestamp `json:"created_at"`
+	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+	PrimaryImage interface{}      `json:"primary_image"`
+	FinalPrice   int64            `json:"final_price"`
+	SoldCount    int64            `json:"sold_count"`
+}
+
+func (q *Queries) GetProductsByCategoryName(ctx context.Context, arg GetProductsByCategoryNameParams) ([]GetProductsByCategoryNameRow, error) {
+	rows, err := q.db.Query(ctx, getProductsByCategoryName,
+		arg.CategoryName,
+		arg.Sort,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetProductsByCategoryNameRow{}
+	for rows.Next() {
+		var i GetProductsByCategoryNameRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Price,
+			&i.Discount,
+			&i.CategoryID,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PrimaryImage,
+			&i.FinalPrice,
+			&i.SoldCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchProducts = `-- name: SearchProducts :many
 SELECT
     p.id,

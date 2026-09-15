@@ -73,6 +73,16 @@ func (q *Queries) DeleteReview(ctx context.Context, arg DeleteReviewParams) erro
 	return err
 }
 
+const deleteReviewByID = `-- name: DeleteReviewByID :exec
+DELETE FROM reviews
+WHERE id = $1
+`
+
+func (q *Queries) DeleteReviewByID(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteReviewByID, id)
+	return err
+}
+
 const getAverageRating = `-- name: GetAverageRating :one
 SELECT
     COALESCE(
