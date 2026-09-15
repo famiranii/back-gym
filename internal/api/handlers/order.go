@@ -1,21 +1,26 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"strconv"
 
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
+	"github.com/famiranii/back-gym.git/internal/sms"
 	"github.com/famiranii/back-gym.git/internal/token"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rs/zerolog/log"
 )
 
 type OrderHandler struct {
 	store *db.Store
+	sms   *sms.Client
 }
 
-func NewOrderHandler(store *db.Store) *OrderHandler {
-	return &OrderHandler{store: store}
+func NewOrderHandler(store *db.Store, smsClient *sms.Client) *OrderHandler {
+	return &OrderHandler{store: store, sms: smsClient}
 }
 
 func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
@@ -106,6 +111,16 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 	}
 
 	h.store.ClearCart(c.Context(), userID)
+
+	// ارسال پیامک تأیید سفارش (best-effort — خطای پیامک نباید سفارش را fail کند)
+	if h.sms != nil {
+		msg := fmt.Sprintf("سفارش شما با موفقیت ثبت شد.\nمبلغ کل: %d تومان\nکد پیگیری: %s", order.TotalPrice, order.ID.String()[:8])
+		go func(phone, message string) {
+			if _, err := h.sms.Send(context.Background(), []string{phone}, message, false); err != nil {
+				log.Error().Err(err).Str("phone", phone).Msg("failed to send order confirmation sms")
+			}
+		}(payload.Phone, msg)
+	}
 
 	return c.Status(fiber.StatusCreated).JSON(order)
 }

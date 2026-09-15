@@ -25,6 +25,14 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Post("/register", user.RegisterUser)
 	server.App.Post("/login", user.LoginUser)
 	server.App.Post("/logout", user.Logout)
+
+	// OTP: phone verification for register + password recovery
+	otp := handlers.NewOTPHandler(server.Store, server.SMS, server.TokenMaker, server.Config)
+	server.App.Post("/register/otp", otp.RequestRegisterOTP)
+	server.App.Post("/register/verify", otp.VerifyRegisterOTP)
+	server.App.Post("/password/forgot", otp.RequestPasswordReset)
+	server.App.Post("/password/reset", otp.ResetPassword)
+	server.App.Post("/otp/resend", otp.ResendOTP)
 	server.App.Get("/users", adminAuth, user.GetAllUsers)
 	server.App.Get("/users/me", auth, user.GetMe)
 	server.App.Get("/users/search", adminAuth, user.SearchUsers) // ← قبل از :id
@@ -95,7 +103,7 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Put("/admin/shipping-cost", adminAuth, shipping.UpdateShippingCost)
 
 	// Orders
-	order := handlers.NewOrderHandler(server.Store)
+	order := handlers.NewOrderHandler(server.Store, server.SMS)
 	server.App.Post("/orders", auth, order.CreateOrder)
 	server.App.Get("/orders", auth, order.GetMyOrders)
 	server.App.Get("/admin/orders/:id", adminAuth, order.GetUserOrders) // admin
@@ -112,5 +120,9 @@ func SetupRoutes(server *api.Server) error {
 	admin := handlers.NewAdminHandler(server.Store)
 
 	server.App.Get("/admin/dashboard", adminAuth, admin.GetDashboard)
+
+	// SMS
+	smsHandler := handlers.NewSMSHandler(server.SMS)
+	server.App.Post("/admin/sms", adminAuth, smsHandler.SendSMS)
 	return nil
 }

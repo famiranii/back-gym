@@ -56,6 +56,19 @@ type OrderItem struct {
 	TotalPrice int64       `json:"total_price"`
 }
 
+type OtpCode struct {
+	ID         uuid.UUID        `json:"id"`
+	Phone      string           `json:"phone"`
+	Code       string           `json:"code"`
+	Purpose    string           `json:"purpose"`
+	FullName   pgtype.Text      `json:"full_name"`
+	Password   pgtype.Text      `json:"password"`
+	ExpiresAt  pgtype.Timestamp `json:"expires_at"`
+	ConsumedAt pgtype.Timestamp `json:"consumed_at"`
+	Attempts   int32            `json:"attempts"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+}
+
 type Product struct {
 	ID          uuid.UUID        `json:"id"`
 	Name        string           `json:"name"`
