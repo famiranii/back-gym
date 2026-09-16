@@ -11,6 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Banner struct {
+	ID         uuid.UUID        `json:"id"`
+	Title      pgtype.Text      `json:"title"`
+	Subtitle   pgtype.Text      `json:"subtitle"`
+	ButtonText pgtype.Text      `json:"button_text"`
+	ButtonUrl  pgtype.Text      `json:"button_url"`
+	ImageUrl   string           `json:"image_url"`
+	IsActive   bool             `json:"is_active"`
+	SortOrder  int32            `json:"sort_order"`
+	CreatedAt  pgtype.Timestamp `json:"created_at"`
+	UpdatedAt  pgtype.Timestamp `json:"updated_at"`
+}
+
 type CartItem struct {
 	ID        uuid.UUID        `json:"id"`
 	UserID    uuid.UUID        `json:"user_id"`

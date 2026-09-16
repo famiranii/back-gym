@@ -12,6 +12,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const consumeOTP = `-- name: ConsumeOTP :exec
+UPDATE otp_codes
+SET consumed_at = CURRENT_TIMESTAMP
+WHERE id = $1
+`
+
+func (q *Queries) ConsumeOTP(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, consumeOTP, id)
+	return err
+}
+
 const createOTP = `-- name: CreateOTP :one
 INSERT INTO otp_codes (phone, code, purpose, full_name, password, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -52,6 +63,21 @@ func (q *Queries) CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, 
 	return i, err
 }
 
+const deleteOTPByPhonePurpose = `-- name: DeleteOTPByPhonePurpose :exec
+DELETE FROM otp_codes
+WHERE phone = $1 AND purpose = $2
+`
+
+type DeleteOTPByPhonePurposeParams struct {
+	Phone   string `json:"phone"`
+	Purpose string `json:"purpose"`
+}
+
+func (q *Queries) DeleteOTPByPhonePurpose(ctx context.Context, arg DeleteOTPByPhonePurposeParams) error {
+	_, err := q.db.Exec(ctx, deleteOTPByPhonePurpose, arg.Phone, arg.Purpose)
+	return err
+}
+
 const getLatestOTP = `-- name: GetLatestOTP :one
 SELECT id, phone, code, purpose, full_name, password, expires_at, consumed_at, attempts, created_at FROM otp_codes
 WHERE phone = $1 AND purpose = $2
@@ -90,32 +116,6 @@ WHERE id = $1
 
 func (q *Queries) IncrementOTPAttempts(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, incrementOTPAttempts, id)
-	return err
-}
-
-const consumeOTP = `-- name: ConsumeOTP :exec
-UPDATE otp_codes
-SET consumed_at = CURRENT_TIMESTAMP
-WHERE id = $1
-`
-
-func (q *Queries) ConsumeOTP(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, consumeOTP, id)
-	return err
-}
-
-const deleteOTPByPhonePurpose = `-- name: DeleteOTPByPhonePurpose :exec
-DELETE FROM otp_codes
-WHERE phone = $1 AND purpose = $2
-`
-
-type DeleteOTPByPhonePurposeParams struct {
-	Phone   string `json:"phone"`
-	Purpose string `json:"purpose"`
-}
-
-func (q *Queries) DeleteOTPByPhonePurpose(ctx context.Context, arg DeleteOTPByPhonePurposeParams) error {
-	_, err := q.db.Exec(ctx, deleteOTPByPhonePurpose, arg.Phone, arg.Purpose)
 	return err
 }
 

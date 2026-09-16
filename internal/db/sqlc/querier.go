@@ -16,7 +16,10 @@ type Querier interface {
 	ApproveReview(ctx context.Context, id int64) (ApproveReviewRow, error)
 	BlockSession(ctx context.Context, id uuid.UUID) (Session, error)
 	ClearCart(ctx context.Context, userID uuid.UUID) error
+	ConsumeOTP(ctx context.Context, id uuid.UUID) error
+	CreateBanner(ctx context.Context, arg CreateBannerParams) (Banner, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
@@ -26,7 +29,9 @@ type Querier interface {
 	CreateUserAddress(ctx context.Context, arg CreateUserAddressParams) (UserAddress, error)
 	CreateVariant(ctx context.Context, arg CreateVariantParams) (ProductVariant, error)
 	DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) error
+	DeleteBanner(ctx context.Context, id uuid.UUID) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
+	DeleteOTPByPhonePurpose(ctx context.Context, arg DeleteOTPByPhonePurposeParams) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteProductImage(ctx context.Context, id uuid.UUID) error
 	DeleteReview(ctx context.Context, arg DeleteReviewParams) error
@@ -34,12 +39,14 @@ type Querier interface {
 	DeleteSession(ctx context.Context, id uuid.UUID) error
 	DeleteUserAddress(ctx context.Context, arg DeleteUserAddressParams) error
 	DeleteVariant(ctx context.Context, id uuid.UUID) error
+	GetActiveBanners(ctx context.Context) ([]Banner, error)
 	GetAllCategories(ctx context.Context) ([]Category, error)
 	GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error)
 	GetAllUsers(ctx context.Context) ([]User, error)
 	GetAverageRating(ctx context.Context, productID uuid.UUID) (float64, error)
 	GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
+	GetLatestOTP(ctx context.Context, arg GetLatestOTPParams) (OtpCode, error)
 	GetLowStockProducts(ctx context.Context) ([]GetLowStockProductsRow, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (GetOrderByIDRow, error)
 	GetOrderItems(ctx context.Context, orderID uuid.UUID) ([]GetOrderItemsRow, error)
@@ -70,6 +77,7 @@ type Querier interface {
 	GetVariantByID(ctx context.Context, id uuid.UUID) (ProductVariant, error)
 	GetVariantsByProductID(ctx context.Context, productID uuid.UUID) ([]ProductVariant, error)
 	GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]GetWishlistByUserIDRow, error)
+	IncrementOTPAttempts(ctx context.Context, id uuid.UUID) error
 	IsInWishlist(ctx context.Context, arg IsInWishlistParams) (bool, error)
 	RejectReview(ctx context.Context, id int64) (RejectReviewRow, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
@@ -77,12 +85,14 @@ type Querier interface {
 	SearchProducts(ctx context.Context, arg SearchProductsParams) ([]SearchProductsRow, error)
 	SearchUsers(ctx context.Context, query string) ([]SearchUsersRow, error)
 	SetDefaultAddress(ctx context.Context, arg SetDefaultAddressParams) error
+	UpdateBanner(ctx context.Context, arg UpdateBannerParams) (Banner, error)
 	UpdateCartItemQuantity(ctx context.Context, arg UpdateCartItemQuantityParams) (CartItem, error)
 	UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) (Order, error)
 	UpdateProduct(ctx context.Context, arg UpdateProductParams) (Product, error)
 	UpdateShippingCost(ctx context.Context, cost int64) (ShippingSetting, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserAddress(ctx context.Context, arg UpdateUserAddressParams) (UserAddress, error)
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error)
 	UpdateVariant(ctx context.Context, arg UpdateVariantParams) (ProductVariant, error)
 	UpdateVariantStock(ctx context.Context, arg UpdateVariantStockParams) (ProductVariant, error)
 	// internal/db/query/review.sql

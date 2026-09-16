@@ -124,5 +124,12 @@ func SetupRoutes(server *api.Server) error {
 	// SMS
 	smsHandler := handlers.NewSMSHandler(server.SMS)
 	server.App.Post("/admin/sms", adminAuth, smsHandler.SendSMS)
+
+	banner := handlers.NewBannerHandler(server.Store, server.TokenMaker, server.Config)
+
+	server.App.Get("/banners", banner.GetActiveBanners)
+	server.App.Post("/banners", auth, banner.CreateBanner)
+	server.App.Put("/banners/:id", auth, banner.UpdateBanner)
+	server.App.Delete("/banners/:id", auth, banner.DeleteBanner)
 	return nil
 }
