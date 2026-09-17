@@ -71,3 +71,4 @@ func AdminMiddleware(tokenMaker token.Maker) fiber.Handler {
 		return c.Next()
 	}
 }
+

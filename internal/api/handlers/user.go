@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/netip"
 	"time"
 
@@ -275,15 +276,22 @@ func (u *UserHandler) GetMe(c fiber.Ctx) error {
 
 	cart, err := u.Store.GetCart(c.Context(), payload.UserID)
 	if err != nil {
+		fmt.Println("GetCart ERROR:", err)
+
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get cart",
 		})
 	}
-	orders, err := u.Store.GetOrdersByUser(c.Context(), payload.UserID)
 
+	orders, err := u.Store.GetOrdersByUser(c.Context(), payload.UserID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to get orders"})
+		fmt.Println("GetOrdersByUser ERROR:", err)
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get orders",
+		})
 	}
+
 	pendingOrdersCount := 0
 
 	for _, order := range orders {
@@ -291,6 +299,7 @@ func (u *UserHandler) GetMe(c fiber.Ctx) error {
 			pendingOrdersCount++
 		}
 	}
+
 	rsp := NewUserResponse(user)
 	rsp.CartLength = len(cart)
 	rsp.PendingLength = pendingOrdersCount

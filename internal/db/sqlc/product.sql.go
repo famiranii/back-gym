@@ -99,7 +99,24 @@ SELECT
               AND o.status IN ('paid', 'shipped', 'delivered')
         ),
         0
-    )::bigint AS sold_count
+    )::bigint AS sold_count,
+
+    COALESCE(
+        (
+            SELECT ROUND(AVG(r.rating), 1)
+            FROM reviews r
+            WHERE r.product_id = p.id
+              AND r.rating IS NOT NULL
+        ),
+        0
+    )::numeric AS rating,
+
+    (
+        SELECT COUNT(*)
+        FROM reviews r
+        WHERE r.product_id = p.id
+          AND r.rating IS NOT NULL
+    )::bigint AS rating_count
 
 FROM products p
 
@@ -162,6 +179,8 @@ type GetAllProductsRow struct {
 	PrimaryImage interface{}      `json:"primary_image"`
 	FinalPrice   int64            `json:"final_price"`
 	SoldCount    int64            `json:"sold_count"`
+	Rating       pgtype.Numeric   `json:"rating"`
+	RatingCount  int64            `json:"rating_count"`
 }
 
 func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error) {
@@ -186,6 +205,8 @@ func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) 
 			&i.PrimaryImage,
 			&i.FinalPrice,
 			&i.SoldCount,
+			&i.Rating,
+			&i.RatingCount,
 		); err != nil {
 			return nil, err
 		}

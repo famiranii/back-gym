@@ -122,6 +122,73 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 	return i, err
 }
 
+const getAdminOrdersByStatus = `-- name: GetAdminOrdersByStatus :many
+
+SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+FROM orders
+WHERE status = $1
+  AND ($2::timestamptz IS NULL OR created_at >= $2)
+  AND ($3::timestamptz IS NULL OR created_at < $3)
+  AND (
+      $4 = ''
+      OR id::text ILIKE '%' || $4 || '%'
+  )
+ORDER BY created_at DESC
+LIMIT $5
+OFFSET $6
+`
+
+type GetAdminOrdersByStatusParams struct {
+	Status  string             `json:"status"`
+	Column2 pgtype.Timestamptz `json:"column_2"`
+	Column3 pgtype.Timestamptz `json:"column_3"`
+	Column4 interface{}        `json:"column_4"`
+	Limit   int32              `json:"limit"`
+	Offset  int32              `json:"offset"`
+}
+
+func (q *Queries) GetAdminOrdersByStatus(ctx context.Context, arg GetAdminOrdersByStatusParams) ([]Order, error) {
+	rows, err := q.db.Query(ctx, getAdminOrdersByStatus,
+		arg.Status,
+		arg.Column2,
+		arg.Column3,
+		arg.Column4,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Order{}
+	for rows.Next() {
+		var i Order
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Status,
+			&i.ShippingCost,
+			&i.TotalPrice,
+			&i.AddressTitle,
+			&i.AddressProvince,
+			&i.AddressCity,
+			&i.AddressDetail,
+			&i.AddressPostalCode,
+			&i.AddressLat,
+			&i.AddressLng,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOrderByID = `-- name: GetOrderByID :one
 SELECT
     o.id, o.user_id, o.status, o.shipping_cost, o.total_price, o.address_title, o.address_province, o.address_city, o.address_detail, o.address_postal_code, o.address_lat, o.address_lng, o.created_at, o.updated_at,

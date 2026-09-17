@@ -32,7 +32,21 @@ SET
 WHERE id = $1
 RETURNING *;
 
--- name: DecreaseVariantStock :exec
+-- name: DecreaseVariantStock :one
+
 UPDATE product_variants
-SET stock = stock - $2, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1 AND stock >= $2;
+SET
+    stock = stock - $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+  AND stock >= $2
+RETURNING stock;
+
+-- name: MarkOrderAsPaid :one
+UPDATE orders
+SET
+    status = 'paid',
+    updated_at = NOW()
+WHERE id = $1
+  AND status <> 'paid'
+RETURNING *;

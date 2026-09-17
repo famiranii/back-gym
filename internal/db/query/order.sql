@@ -80,3 +80,18 @@ WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $3
 OFFSET $4;
+
+-- name: GetAdminOrdersByStatus :many
+
+SELECT *
+FROM orders
+WHERE status = $1
+  AND ($2::timestamptz IS NULL OR created_at >= $2)
+  AND ($3::timestamptz IS NULL OR created_at < $3)
+  AND (
+      $4 = ''
+      OR id::text ILIKE '%' || $4 || '%'
+  )
+ORDER BY created_at DESC
+LIMIT $5
+OFFSET $6;

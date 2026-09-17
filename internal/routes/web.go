@@ -107,6 +107,7 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Post("/orders", auth, order.CreateOrder)
 	server.App.Get("/orders", auth, order.GetMyOrders)
 	server.App.Get("/admin/orders/:id", adminAuth, order.GetUserOrders) // admin
+	server.App.Get("/admin/orders/status/:status", adminAuth, order.GetAdminOrdersByStatus)
 	server.App.Get("/orders/:id", auth, order.GetOrderDetail)
 	server.App.Patch("/orders/:id/status", auth, order.UpdateOrderStatus)
 	server.App.Get("/orders/status/:status", auth, order.GetOrdersByStatus)
@@ -131,5 +132,12 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Post("/banners", auth, banner.CreateBanner)
 	server.App.Put("/banners/:id", auth, banner.UpdateBanner)
 	server.App.Delete("/banners/:id", auth, banner.DeleteBanner)
+
+	placeHandler := handlers.NewPlaceHandler(
+		server.Config.MAPIR_API_KEY,
+		server.Config.MAPIR_DAILY_REQUEST_LIMIT,
+	)
+
+	server.App.Get("/places/search", placeHandler.Search)
 	return nil
 }

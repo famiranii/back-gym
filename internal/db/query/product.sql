@@ -48,7 +48,24 @@ SELECT
               AND o.status IN ('paid', 'shipped', 'delivered')
         ),
         0
-    )::bigint AS sold_count
+    )::bigint AS sold_count,
+
+    COALESCE(
+        (
+            SELECT ROUND(AVG(r.rating), 1)
+            FROM reviews r
+            WHERE r.product_id = p.id
+              AND r.rating IS NOT NULL
+        ),
+        0
+    )::numeric AS rating,
+
+    (
+        SELECT COUNT(*)
+        FROM reviews r
+        WHERE r.product_id = p.id
+          AND r.rating IS NOT NULL
+    )::bigint AS rating_count
 
 FROM products p
 

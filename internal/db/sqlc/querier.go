@@ -28,7 +28,7 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	CreateUserAddress(ctx context.Context, arg CreateUserAddressParams) (UserAddress, error)
 	CreateVariant(ctx context.Context, arg CreateVariantParams) (ProductVariant, error)
-	DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) error
+	DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) (int32, error)
 	DeleteBanner(ctx context.Context, id uuid.UUID) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	DeleteOTPByPhonePurpose(ctx context.Context, arg DeleteOTPByPhonePurposeParams) error
@@ -40,6 +40,7 @@ type Querier interface {
 	DeleteUserAddress(ctx context.Context, arg DeleteUserAddressParams) error
 	DeleteVariant(ctx context.Context, id uuid.UUID) error
 	GetActiveBanners(ctx context.Context) ([]Banner, error)
+	GetAdminOrdersByStatus(ctx context.Context, arg GetAdminOrdersByStatusParams) ([]Order, error)
 	GetAllCategories(ctx context.Context) ([]Category, error)
 	GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error)
 	GetAllUsers(ctx context.Context) ([]User, error)
@@ -79,6 +80,7 @@ type Querier interface {
 	GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]GetWishlistByUserIDRow, error)
 	IncrementOTPAttempts(ctx context.Context, id uuid.UUID) error
 	IsInWishlist(ctx context.Context, arg IsInWishlistParams) (bool, error)
+	MarkOrderAsPaid(ctx context.Context, id uuid.UUID) (Order, error)
 	RejectReview(ctx context.Context, id int64) (RejectReviewRow, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	RemoveFromWishlist(ctx context.Context, arg RemoveFromWishlistParams) error

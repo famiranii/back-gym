@@ -45,10 +45,15 @@ func (q *Queries) CreateVariant(ctx context.Context, arg CreateVariantParams) (P
 	return i, err
 }
 
-const decreaseVariantStock = `-- name: DecreaseVariantStock :exec
+const decreaseVariantStock = `-- name: DecreaseVariantStock :one
+
 UPDATE product_variants
-SET stock = stock - $2, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1 AND stock >= $2
+SET
+    stock = stock - $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+  AND stock >= $2
+RETURNING stock
 `
 
 type DecreaseVariantStockParams struct {
@@ -56,9 +61,11 @@ type DecreaseVariantStockParams struct {
 	Stock int32     `json:"stock"`
 }
 
-func (q *Queries) DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) error {
-	_, err := q.db.Exec(ctx, decreaseVariantStock, arg.ID, arg.Stock)
-	return err
+func (q *Queries) DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) (int32, error) {
+	row := q.db.QueryRow(ctx, decreaseVariantStock, arg.ID, arg.Stock)
+	var stock int32
+	err := row.Scan(&stock)
+	return stock, err
 }
 
 const deleteVariant = `-- name: DeleteVariant :exec
@@ -123,6 +130,38 @@ func (q *Queries) GetVariantsByProductID(ctx context.Context, productID uuid.UUI
 		return nil, err
 	}
 	return items, nil
+}
+
+const markOrderAsPaid = `-- name: MarkOrderAsPaid :one
+UPDATE orders
+SET
+    status = 'paid',
+    updated_at = NOW()
+WHERE id = $1
+  AND status <> 'paid'
+RETURNING id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+`
+
+func (q *Queries) MarkOrderAsPaid(ctx context.Context, id uuid.UUID) (Order, error) {
+	row := q.db.QueryRow(ctx, markOrderAsPaid, id)
+	var i Order
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Status,
+		&i.ShippingCost,
+		&i.TotalPrice,
+		&i.AddressTitle,
+		&i.AddressProvince,
+		&i.AddressCity,
+		&i.AddressDetail,
+		&i.AddressPostalCode,
+		&i.AddressLat,
+		&i.AddressLng,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateVariant = `-- name: UpdateVariant :one
