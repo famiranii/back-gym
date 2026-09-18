@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"errors"
+
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -47,30 +50,58 @@ func (h *CategoryHandler) GetCategoryByID(c fiber.Ctx) error {
 
 func (h *CategoryHandler) CreateCategory(c fiber.Ctx) error {
 	var req CreateCategoryRequest
+
 	if err := c.Bind().Body(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
+
 	if err := validate.Struct(req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
 	}
 
 	arg := db.CreateCategoryParams{
-		Name:     req.Name,
-		ImageUrl: pgtype.Text{String: req.ImageUrl, Valid: req.ImageUrl != ""},
+		Name: req.Name,
+		ImageUrl: pgtype.Text{
+			String: req.ImageUrl,
+			Valid:  req.ImageUrl != "",
+		},
 	}
 
 	if req.ParentID != "" {
 		parentID, err := uuid.Parse(req.ParentID)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid parent_id"})
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "invalid parent_id",
+			})
 		}
-		arg.ParentID = pgtype.UUID{Bytes: parentID, Valid: true}
+
+		arg.ParentID = pgtype.UUID{
+			Bytes: parentID,
+			Valid: true,
+		}
 	}
 
 	category, err := h.Store.CreateCategory(c.Context(), arg)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		var pgErr *pgconn.PgError
+
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+					"error": "category name already exists",
+				})
+			}
+		}
+
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to create category",
+		})
 	}
+
 	return c.Status(fiber.StatusCreated).JSON(category)
 }
 

@@ -407,7 +407,7 @@ func (h *OrderHandler) GetAdminOrdersByStatus(c fiber.Ctx) error {
 	}
 
 	// جستجوی شناسه سفارش — اختیاری
-	search := c.Query("q", "")
+	search := c.Query("search", "")
 
 	orders, err := h.store.GetAdminOrdersByStatus(
 		c.Context(),
