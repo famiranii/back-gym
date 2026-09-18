@@ -200,7 +200,7 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 		Expires:  accessPayload.ExpiredAt,
 		HTTPOnly: true,
 		Secure:   false, // localhost -> true in production
-		SameSite: "Lax",
+		SameSite: "lax",
 		Path:     "/",
 	})
 
@@ -213,7 +213,7 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 		Expires:  refreshPayload.ExpiredAt,
 		HTTPOnly: true,
 		Secure:   false, // localhost -> true in production
-		SameSite: "Lax",
+		SameSite: "lax",
 		Path:     "/",
 	})
 
@@ -363,7 +363,7 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 		Expires:  time.Unix(0, 0),
 		HTTPOnly: true,
 		Secure:   false,
-		SameSite: "Lax",
+		SameSite: "lax",
 		Path:     "/",
 	})
 
@@ -373,7 +373,7 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 		Expires:  time.Unix(0, 0),
 		HTTPOnly: true,
 		Secure:   false,
-		SameSite: "Lax",
+		SameSite: "lax",
 		Path:     "/",
 	})
 

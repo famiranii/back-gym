@@ -10,9 +10,27 @@ import (
 
 func SetupRoutes(server *api.Server) error {
 	server.App.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:3001"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowOrigins: []string{
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"http://85.198.48.18:3000",
+			"https://cheheltike.com",
+			"https://www.cheheltike.com",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+		},
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"DELETE",
+			"OPTIONS",
+			"PATCH",
+		},
 		AllowCredentials: true,
 	}))
 
