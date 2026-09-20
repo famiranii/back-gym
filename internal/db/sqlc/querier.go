@@ -66,6 +66,7 @@ type Querier interface {
 	GetReviewsByProductID(ctx context.Context, productID uuid.UUID) ([]GetReviewsByProductIDRow, error)
 	GetSalesLast7Days(ctx context.Context) ([]GetSalesLast7DaysRow, error)
 	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
+	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (Session, error)
 	GetShippingCost(ctx context.Context) (int64, error)
 	GetTodayOrdersCount(ctx context.Context) (int64, error)
 	GetTodaySales(ctx context.Context) (interface{}, error)

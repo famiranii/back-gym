@@ -43,6 +43,7 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Post("/register", user.RegisterUser)
 	server.App.Post("/login", user.LoginUser)
 	server.App.Post("/logout", user.Logout)
+	server.App.Post("/refresh", user.RefreshToken)
 
 	// OTP: phone verification for register + password recovery
 	otp := handlers.NewOTPHandler(server.Store, server.SMS, server.TokenMaker, server.Config)

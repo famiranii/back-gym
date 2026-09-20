@@ -25,3 +25,9 @@ RETURNING *;
 -- name: DeleteSession :exec
 DELETE FROM sessions
 WHERE id = $1;
+
+-- name: GetSessionByRefreshToken :one
+SELECT *
+FROM sessions
+WHERE refresh_token = $1
+LIMIT 1;

@@ -403,3 +403,65 @@ func (h *UserHandler) SearchUsers(c fiber.Ctx) error {
 
 	return c.JSON(users)
 }
+
+func (u *UserHandler) RefreshToken(c fiber.Ctx) error {
+	refreshToken := c.Cookies("refresh_token")
+
+	if refreshToken == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "refresh token is required",
+		})
+	}
+
+	payload, err := u.TokenMaker.VerifyToken(refreshToken)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "invalid refresh token",
+		})
+	}
+
+	session, err := u.Store.GetSessionByRefreshToken(c.Context(), refreshToken)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "session not found",
+		})
+	}
+
+	if session.IsBlocked {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "session is blocked",
+		})
+	}
+
+	if !session.ExpiresAt.Valid || time.Now().After(session.ExpiresAt.Time) {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "refresh token expired",
+		})
+	}
+
+	accessToken, accessPayload, err := u.TokenMaker.CreateToken(
+		payload.Phone,
+		payload.UserID,
+		payload.IsAdmin,
+		u.Config.ACCESS_TOKEN_DURATION,
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to create access token",
+		})
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Expires:  accessPayload.ExpiredAt,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "lax",
+		Path:     "/",
+	})
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "access token refreshed",
+	})
+}
