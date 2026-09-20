@@ -394,12 +394,16 @@ func (h *OTPHandler) ResendOTP(c fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to store code"})
 	}
 
-	if err := h.sendCode(c, phone, code, req.Purpose); err != nil && req.Purpose == otpPurposeRegister {
-		// register resend isn't privacy-sensitive, so surface the failure;
-		// reset stays quiet to avoid leaking whether the phone is registered.
-		return c.Status(fiber.StatusBadGateway).JSON(fiber.Map{"error": "failed to send verification code"})
-	}
+	if err := h.sendCode(c, phone, code, req.Purpose); err != nil {
+		if req.Purpose == otpPurposeRegister {
+			return c.Status(fiber.StatusBadGateway).JSON(
+				fiber.Map{"error": "failed to send verification code"},
+			)
+		}
 
+		// reset_password intentionally stays generic
+		return c.JSON(okResponse)
+	}
 	return c.JSON(h.codeSentResponse(phone, code))
 }
 
@@ -487,7 +491,7 @@ func (h *OTPHandler) issueSession(c fiber.Ctx, user db.User) error {
 		Value:    accessToken,
 		Expires:  accessPayload.ExpiredAt,
 		HTTPOnly: true,
-		Secure:   false,
+		Secure:    true,
 		SameSite: "Lax",
 		Path:     "/",
 	})
@@ -496,7 +500,7 @@ func (h *OTPHandler) issueSession(c fiber.Ctx, user db.User) error {
 		Value:    refreshToken,
 		Expires:  refreshPayload.ExpiredAt,
 		HTTPOnly: true,
-		Secure:   false,
+		Secure:    true,
 		SameSite: "Lax",
 		Path:     "/",
 	})
