@@ -139,7 +139,7 @@ SET
     updated_at = NOW()
 WHERE id = $1
   AND status <> 'paid'
-RETURNING id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+RETURNING id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at, discount_code, discount_amount
 `
 
 func (q *Queries) MarkOrderAsPaid(ctx context.Context, id uuid.UUID) (Order, error) {
@@ -160,6 +160,8 @@ func (q *Queries) MarkOrderAsPaid(ctx context.Context, id uuid.UUID) (Order, err
 		&i.AddressLng,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DiscountCode,
+		&i.DiscountAmount,
 	)
 	return i, err
 }

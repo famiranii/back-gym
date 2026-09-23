@@ -131,6 +131,14 @@ func SetupRoutes(server *api.Server) error {
 	server.App.Patch("/orders/:id/status", auth, order.UpdateOrderStatus)
 	server.App.Get("/orders/status/:status", auth, order.GetOrdersByStatus)
 
+	//discount
+	discount := handlers.NewDiscountCodeHandler(server.Store)
+	server.App.Post("/discount-codes", adminAuth, discount.Create)
+	server.App.Get("/discount-codes", adminAuth, discount.List)
+	server.App.Delete("/discount-codes/:id", adminAuth, discount.Delete)
+	server.App.Post("/discount/validate", auth, discount.ValidateDiscount)
+
+	//whish list
 	whishList := handlers.NewWishlistHandler(server.Store)
 	server.App.Get("/wishlist", auth, whishList.GetWishlist)
 	server.App.Post("/wishlist", auth, whishList.ToggleWishlist)

@@ -4,6 +4,8 @@ INSERT INTO orders (
     status,
     shipping_cost,
     total_price,
+    discount_code,
+    discount_amount,
     address_title,
     address_province,
     address_city,
@@ -11,9 +13,11 @@ INSERT INTO orders (
     address_postal_code,
     address_lat,
     address_lng
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING *;
+)
+VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+)
+RETURNING *;
 
 -- name: CreateOrderItem :one
 INSERT INTO order_items (

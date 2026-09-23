@@ -21,7 +21,38 @@ type OrderHandler struct {
 }
 
 func NewOrderHandler(store *db.Store, smsClient *sms.Client) *OrderHandler {
-	return &OrderHandler{store: store, sms: smsClient}
+	return &OrderHandler{
+		store: store,
+		sms:   smsClient,
+	}
+}
+
+func calculateDiscount(discount db.DiscountCode, subtotal int64) int64 {
+	if subtotal < discount.MinOrderAmount {
+		return 0
+	}
+
+	var amount int64
+
+	switch discount.DiscountType {
+	case "percentage":
+		amount = subtotal * discount.DiscountValue / 100
+
+	case "fixed":
+		amount = discount.DiscountValue
+	}
+
+	if discount.MaxDiscountAmount.Valid &&
+		discount.MaxDiscountAmount.Int64 > 0 &&
+		amount > discount.MaxDiscountAmount.Int64 {
+		amount = discount.MaxDiscountAmount.Int64
+	}
+
+	if amount > subtotal {
+		amount = subtotal
+	}
+
+	return amount
 }
 
 func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
@@ -29,36 +60,73 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 	userID := payload.UserID
 
 	var req struct {
-		AddressID string `json:"address_id"`
+		AddressID    string `json:"address_id"`
+		DiscountCode string `json:"discount_code"`
 	}
+
 	if err := c.Bind().JSON(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid request"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid request",
+		})
 	}
+
+	// -----------------------------
+	// address
+	// -----------------------------
 
 	addrID, err := uuid.Parse(req.AddressID)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid address_id"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid address_id",
+		})
 	}
 
-	addr, err := h.store.GetUserAddress(c.Context(), db.GetUserAddressParams{
-		ID:     addrID,
-		UserID: userID,
-	})
+	addr, err := h.store.GetUserAddress(
+		c.Context(),
+		db.GetUserAddressParams{
+			ID:     addrID,
+			UserID: userID,
+		},
+	)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "address not found"})
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "address not found",
+		})
 	}
+
+	// -----------------------------
+	// cart
+	// -----------------------------
 
 	cartItems, err := h.store.GetCart(c.Context(), userID)
-	if err != nil || len(cartItems) == 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "cart is empty"})
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get cart",
+		})
 	}
 
+	if len(cartItems) == 0 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "cart is empty",
+		})
+	}
+
+	// -----------------------------
 	// بررسی موجودی
+	// -----------------------------
+
 	for _, item := range cartItems {
-		variant, err := h.store.GetVariantByID(c.Context(), item.VariantID)
+		variant, err := h.store.GetVariantByID(
+			c.Context(),
+			item.VariantID,
+		)
+
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to check stock"})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "failed to check stock",
+			})
 		}
+
 		if int(variant.Stock) < int(item.Quantity) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error":   "there isnt enough product",
@@ -67,71 +135,178 @@ func (h *OrderHandler) CreateOrder(c fiber.Ctx) error {
 		}
 	}
 
+	// -----------------------------
+	// shipping
+	// -----------------------------
+
 	shippingCost, err := h.store.GetShippingCost(c.Context())
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to get shipping cost"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get shipping cost",
+		})
 	}
 
-	var totalPrice int64
+	// -----------------------------
+	// subtotal
+	// -----------------------------
+
+	var subtotal int64
+
 	for _, item := range cartItems {
-		totalPrice += item.FinalPrice * int64(item.Quantity)
+		subtotal += item.FinalPrice * int64(item.Quantity)
 	}
-	totalPrice += shippingCost
 
-	order, err := h.store.CreateOrder(c.Context(), db.CreateOrderParams{
-		UserID:            userID,
-		Status:            "pending",
-		ShippingCost:      shippingCost,
-		TotalPrice:        totalPrice,
-		AddressTitle:      addr.Title,
-		AddressProvince:   addr.Province,
-		AddressCity:       addr.City,
-		AddressDetail:     addr.Address,
-		AddressPostalCode: addr.PostalCode,
-		AddressLat:        addr.Lat,
-		AddressLng:        addr.Lng,
-	})
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to create order"})
+	// -----------------------------
+	// discount
+	// -----------------------------
+
+	var discountAmount int64
+	var discountCode string
+
+	if req.DiscountCode != "" {
+		discount, err := h.store.GetValidDiscountCode(
+			c.Context(),
+			req.DiscountCode,
+		)
+
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "invalid discount code",
+			})
+		}
+
+		if subtotal < discount.MinOrderAmount {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "minimum order amount not reached",
+			})
+		}
+
+		discountAmount = calculateDiscount(
+			discount,
+			subtotal,
+		)
+
+		discountCode = discount.Code
 	}
+
+	// -----------------------------
+	// total
+	// -----------------------------
+
+	totalPrice := subtotal - discountAmount + shippingCost
+
+	// -----------------------------
+	// create order
+	// -----------------------------
+
+	order, err := h.store.CreateOrder(
+		c.Context(),
+		db.CreateOrderParams{
+			UserID:       userID,
+			Status:       "pending",
+			ShippingCost: shippingCost,
+			TotalPrice:   totalPrice,
+			DiscountCode: pgtype.Text{
+				String: discountCode,
+				Valid:  discountCode != "",
+			},
+			DiscountAmount:    discountAmount,
+			AddressTitle:      addr.Title,
+			AddressProvince:   addr.Province,
+			AddressCity:       addr.City,
+			AddressDetail:     addr.Address,
+			AddressPostalCode: addr.PostalCode,
+			AddressLat:        addr.Lat,
+			AddressLng:        addr.Lng,
+		},
+	)
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to create order",
+		})
+	}
+
+	// -----------------------------
+	// create order items
+	// -----------------------------
 
 	for _, item := range cartItems {
 		unitPrice := item.FinalPrice
-		// خط 94 — CreateOrderItem
-		_, err := h.store.CreateOrderItem(c.Context(), db.CreateOrderItemParams{
-			OrderID:    order.ID,
-			VariantID:  pgtype.UUID{Bytes: item.VariantID, Valid: true},
-			ProductID:  pgtype.UUID{Bytes: item.ProductID, Valid: true},
-			Quantity:   item.Quantity,
-			UnitPrice:  unitPrice,
-			TotalPrice: unitPrice * int64(item.Quantity),
-		})
+
+		_, err := h.store.CreateOrderItem(
+			c.Context(),
+			db.CreateOrderItemParams{
+				OrderID: order.ID,
+				VariantID: pgtype.UUID{
+					Bytes: item.VariantID,
+					Valid: true,
+				},
+				ProductID: pgtype.UUID{
+					Bytes: item.ProductID,
+					Valid: true,
+				},
+				Quantity:   item.Quantity,
+				UnitPrice:  unitPrice,
+				TotalPrice: unitPrice * int64(item.Quantity),
+			},
+		)
+
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to create order items"})
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "failed to create order items",
+			})
 		}
 	}
 
-	h.store.ClearCart(c.Context(), userID)
+	// -----------------------------
+	// clear cart
+	// -----------------------------
+
+	if err := h.store.ClearCart(c.Context(), userID); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to clear cart",
+		})
+	}
 
 	return c.Status(fiber.StatusCreated).JSON(order)
 }
+
 func (h *OrderHandler) GetMyOrders(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 	userID := payload.UserID
 
-	orders, err := h.store.GetOrdersByUser(c.Context(), userID)
+	orders, err := h.store.GetOrdersByUser(
+		c.Context(),
+		userID,
+	)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to get orders"})
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get orders",
+		})
 	}
+
 	return c.JSON(orders)
 }
+
 func (h *OrderHandler) GetUserOrders(c fiber.Ctx) error {
 	userID, err := uuid.Parse(c.Params("id"))
-
-	orders, err := h.store.GetOrdersByUser(c.Context(), userID)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to get orders"})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "invalid user id",
+		})
 	}
+
+	orders, err := h.store.GetOrdersByUser(
+		c.Context(),
+		userID,
+	)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to get orders",
+		})
+	}
+
 	return c.JSON(orders)
 }
 
@@ -143,14 +318,20 @@ func (h *OrderHandler) GetOrderDetail(c fiber.Ctx) error {
 		})
 	}
 
-	order, err := h.store.GetOrderByID(c.Context(), orderID)
+	order, err := h.store.GetOrderByID(
+		c.Context(),
+		orderID,
+	)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "order not found",
 		})
 	}
 
-	items, err := h.store.GetOrderItems(c.Context(), orderID)
+	items, err := h.store.GetOrderItems(
+		c.Context(),
+		orderID,
+	)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get order items",
@@ -162,6 +343,7 @@ func (h *OrderHandler) GetOrderDetail(c fiber.Ctx) error {
 		"items": items,
 	})
 }
+
 func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 	orderID, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -194,7 +376,10 @@ func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 		})
 	}
 
-	// فقط برای status های غیر paid
+	// -----------------------------
+	// status های غیر paid
+	// -----------------------------
+
 	if req.Status != "paid" {
 		order, err := h.store.UpdateOrderStatus(
 			c.Context(),
@@ -203,6 +388,7 @@ func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 				ID:     orderID,
 			},
 		)
+
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "failed to update order status",
@@ -218,43 +404,82 @@ func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 
 	var paidOrder db.Order
 
-	err = h.store.ExecTx(c.Context(), func(q *db.Queries) error {
-		order, err := q.MarkOrderAsPaid(c.Context(), orderID)
-		if err != nil {
-			return err
-		}
+	err = h.store.ExecTx(
+		c.Context(),
+		func(q *db.Queries) error {
 
-		paidOrder = order
+			// -----------------------------
+			// mark order as paid
+			// -----------------------------
 
-		items, err := q.GetOrderItems(c.Context(), orderID)
-		if err != nil {
-			return err
-		}
-
-		for _, item := range items {
-			if !item.VariantID.Valid {
-				continue
-			}
-
-			_, err := q.DecreaseVariantStock(
+			order, err := q.MarkOrderAsPaid(
 				c.Context(),
-				db.DecreaseVariantStockParams{
-					ID:    item.VariantID.Bytes,
-					Stock: item.Quantity,
-				},
+				orderID,
 			)
-
 			if err != nil {
-				return fmt.Errorf(
-					"not enough stock for product %s: %w",
-					item.ProductID,
-					err,
-				)
+				return err
 			}
-		}
 
-		return nil
-	})
+			paidOrder = order
+
+			// -----------------------------
+			// مصرف کد تخفیف
+			// -----------------------------
+
+			if order.DiscountCode.Valid &&
+				order.DiscountCode.String != "" {
+
+				err := q.IncrementDiscountCodeUsage(
+					c.Context(),
+					uuid.Nil,
+				)
+
+				if err != nil {
+					return err
+				}
+			}
+
+			// -----------------------------
+			// order items
+			// -----------------------------
+
+			items, err := q.GetOrderItems(
+				c.Context(),
+				orderID,
+			)
+			if err != nil {
+				return err
+			}
+
+			// -----------------------------
+			// decrease stock
+			// -----------------------------
+
+			for _, item := range items {
+				if !item.VariantID.Valid {
+					continue
+				}
+
+				_, err := q.DecreaseVariantStock(
+					c.Context(),
+					db.DecreaseVariantStockParams{
+						ID:    item.VariantID.Bytes,
+						Stock: item.Quantity,
+					},
+				)
+
+				if err != nil {
+					return fmt.Errorf(
+						"not enough stock for product %s: %w",
+						item.ProductID,
+						err,
+					)
+				}
+			}
+
+			return nil
+		},
+	)
 
 	if err != nil {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -282,13 +507,17 @@ func (h *OrderHandler) UpdateOrderStatus(c fiber.Ctx) error {
 				message,
 				false,
 			); err != nil {
-				log.Printf("failed to send order confirmation sms: %v", err)
+				log.Printf(
+					"failed to send order confirmation sms: %v",
+					err,
+				)
 			}
 		}(payload.Phone, msg)
 	}
 
 	return c.JSON(paidOrder)
 }
+
 func (h *OrderHandler) GetOrdersByStatus(c fiber.Ctx) error {
 	payload := c.Locals("payload").(*token.Payload)
 	userID := payload.UserID
@@ -309,14 +538,18 @@ func (h *OrderHandler) GetOrdersByStatus(c fiber.Ctx) error {
 		})
 	}
 
-	offset, err := strconv.Atoi(c.Query("offset", "0"))
+	offset, err := strconv.Atoi(
+		c.Query("offset", "0"),
+	)
 	if err != nil || offset < 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid offset",
 		})
 	}
 
-	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	limit, err := strconv.Atoi(
+		c.Query("limit", "10"),
+	)
 	if err != nil || limit <= 0 || limit > 100 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid limit",
@@ -332,10 +565,15 @@ func (h *OrderHandler) GetOrdersByStatus(c fiber.Ctx) error {
 			Offset: int32(offset),
 		},
 	)
+
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get orders",
 		})
+	}
+
+	if orders == nil {
+		orders = []db.Order{}
 	}
 
 	return c.JSON(orders)
@@ -358,41 +596,52 @@ func (h *OrderHandler) GetAdminOrdersByStatus(c fiber.Ctx) error {
 		})
 	}
 
-	offset, err := strconv.Atoi(c.Query("offset", "0"))
+	offset, err := strconv.Atoi(
+		c.Query("offset", "0"),
+	)
 	if err != nil || offset < 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid offset",
 		})
 	}
 
-	limit, err := strconv.Atoi(c.Query("limit", "10"))
+	limit, err := strconv.Atoi(
+		c.Query("limit", "10"),
+	)
 	if err != nil || limit <= 0 || limit > 100 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid limit",
 		})
 	}
 
-	// فیلتر تاریخ — اختیاری
+	// -----------------------------
+	// فیلتر تاریخ
+	// -----------------------------
+
 	var fromTime, toTime pgtype.Timestamptz
 
 	if date := c.Query("date"); date != "" {
-		t, err := time.Parse("2006-01-02", date)
+		t, err := time.Parse(
+			"2006-01-02",
+			date,
+		)
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "invalid date, use YYYY-MM-DD",
 			})
 		}
 
-		// شروع روز
 		from := time.Date(
 			t.Year(),
 			t.Month(),
 			t.Day(),
-			0, 0, 0, 0,
+			0,
+			0,
+			0,
+			0,
 			t.Location(),
 		)
 
-		// شروع روز بعد
 		to := from.AddDate(0, 0, 1)
 
 		fromTime = pgtype.Timestamptz{
@@ -406,7 +655,10 @@ func (h *OrderHandler) GetAdminOrdersByStatus(c fiber.Ctx) error {
 		}
 	}
 
-	// جستجوی شناسه سفارش — اختیاری
+	// -----------------------------
+	// search
+	// -----------------------------
+
 	search := c.Query("search", "")
 
 	orders, err := h.store.GetAdminOrdersByStatus(
@@ -422,7 +674,10 @@ func (h *OrderHandler) GetAdminOrdersByStatus(c fiber.Ctx) error {
 	)
 
 	if err != nil {
-		fmt.Println("GetAdminOrdersByStatus ERROR:", err)
+		fmt.Println(
+			"GetAdminOrdersByStatus ERROR:",
+			err,
+		)
 
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "failed to get orders",

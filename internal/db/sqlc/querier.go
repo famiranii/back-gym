@@ -19,6 +19,7 @@ type Querier interface {
 	ConsumeOTP(ctx context.Context, id uuid.UUID) error
 	CreateBanner(ctx context.Context, arg CreateBannerParams) (Banner, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateDiscountCode(ctx context.Context, arg CreateDiscountCodeParams) (DiscountCode, error)
 	CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
@@ -31,6 +32,7 @@ type Querier interface {
 	DecreaseVariantStock(ctx context.Context, arg DecreaseVariantStockParams) (int32, error)
 	DeleteBanner(ctx context.Context, id uuid.UUID) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
+	DeleteDiscountCode(ctx context.Context, id uuid.UUID) error
 	DeleteOTPByPhonePurpose(ctx context.Context, arg DeleteOTPByPhonePurposeParams) error
 	DeleteProduct(ctx context.Context, id uuid.UUID) error
 	DeleteProductImage(ctx context.Context, id uuid.UUID) error
@@ -77,11 +79,14 @@ type Querier interface {
 	GetUserAddresses(ctx context.Context, userID uuid.UUID) ([]UserAddress, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
+	GetValidDiscountCode(ctx context.Context, code string) (DiscountCode, error)
 	GetVariantByID(ctx context.Context, id uuid.UUID) (ProductVariant, error)
 	GetVariantsByProductID(ctx context.Context, productID uuid.UUID) ([]ProductVariant, error)
 	GetWishlistByUserID(ctx context.Context, userID uuid.UUID) ([]GetWishlistByUserIDRow, error)
+	IncrementDiscountCodeUsage(ctx context.Context, id uuid.UUID) error
 	IncrementOTPAttempts(ctx context.Context, id uuid.UUID) error
 	IsInWishlist(ctx context.Context, arg IsInWishlistParams) (bool, error)
+	ListDiscountCodes(ctx context.Context) ([]DiscountCode, error)
 	MarkOrderAsPaid(ctx context.Context, id uuid.UUID) (Order, error)
 	RejectReview(ctx context.Context, id int64) (RejectReviewRow, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error

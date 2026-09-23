@@ -42,6 +42,22 @@ type Category struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
+type DiscountCode struct {
+	ID                uuid.UUID          `json:"id"`
+	Code              string             `json:"code"`
+	DiscountType      string             `json:"discount_type"`
+	DiscountValue     int64              `json:"discount_value"`
+	MinOrderAmount    int64              `json:"min_order_amount"`
+	MaxDiscountAmount pgtype.Int8        `json:"max_discount_amount"`
+	UsageLimit        pgtype.Int4        `json:"usage_limit"`
+	UsedCount         int32              `json:"used_count"`
+	StartsAt          pgtype.Timestamptz `json:"starts_at"`
+	ExpiresAt         pgtype.Timestamptz `json:"expires_at"`
+	IsActive          bool               `json:"is_active"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Order struct {
 	ID                uuid.UUID          `json:"id"`
 	UserID            uuid.UUID          `json:"user_id"`
@@ -57,6 +73,8 @@ type Order struct {
 	AddressLng        pgtype.Numeric     `json:"address_lng"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DiscountCode      pgtype.Text        `json:"discount_code"`
+	DiscountAmount    int64              `json:"discount_amount"`
 }
 
 type OrderItem struct {

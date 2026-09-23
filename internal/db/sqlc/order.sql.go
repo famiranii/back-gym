@@ -18,6 +18,8 @@ INSERT INTO orders (
     status,
     shipping_cost,
     total_price,
+    discount_code,
+    discount_amount,
     address_title,
     address_province,
     address_city,
@@ -25,9 +27,11 @@ INSERT INTO orders (
     address_postal_code,
     address_lat,
     address_lng
-) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+)
+VALUES (
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+)
+RETURNING id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at, discount_code, discount_amount
 `
 
 type CreateOrderParams struct {
@@ -35,6 +39,8 @@ type CreateOrderParams struct {
 	Status            string         `json:"status"`
 	ShippingCost      int64          `json:"shipping_cost"`
 	TotalPrice        int64          `json:"total_price"`
+	DiscountCode      pgtype.Text    `json:"discount_code"`
+	DiscountAmount    int64          `json:"discount_amount"`
 	AddressTitle      pgtype.Text    `json:"address_title"`
 	AddressProvince   pgtype.Text    `json:"address_province"`
 	AddressCity       pgtype.Text    `json:"address_city"`
@@ -50,6 +56,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		arg.Status,
 		arg.ShippingCost,
 		arg.TotalPrice,
+		arg.DiscountCode,
+		arg.DiscountAmount,
 		arg.AddressTitle,
 		arg.AddressProvince,
 		arg.AddressCity,
@@ -74,6 +82,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.AddressLng,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DiscountCode,
+		&i.DiscountAmount,
 	)
 	return i, err
 }
@@ -124,7 +134,7 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 
 const getAdminOrdersByStatus = `-- name: GetAdminOrdersByStatus :many
 
-SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at, discount_code, discount_amount
 FROM orders
 WHERE status = $1
   AND ($2::timestamptz IS NULL OR created_at >= $2)
@@ -178,6 +188,8 @@ func (q *Queries) GetAdminOrdersByStatus(ctx context.Context, arg GetAdminOrders
 			&i.AddressLng,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DiscountCode,
+			&i.DiscountAmount,
 		); err != nil {
 			return nil, err
 		}
@@ -191,7 +203,7 @@ func (q *Queries) GetAdminOrdersByStatus(ctx context.Context, arg GetAdminOrders
 
 const getOrderByID = `-- name: GetOrderByID :one
 SELECT
-    o.id, o.user_id, o.status, o.shipping_cost, o.total_price, o.address_title, o.address_province, o.address_city, o.address_detail, o.address_postal_code, o.address_lat, o.address_lng, o.created_at, o.updated_at,
+    o.id, o.user_id, o.status, o.shipping_cost, o.total_price, o.address_title, o.address_province, o.address_city, o.address_detail, o.address_postal_code, o.address_lat, o.address_lng, o.created_at, o.updated_at, o.discount_code, o.discount_amount,
     u.phone AS user_phone
 FROM orders o
 JOIN users u ON u.id = o.user_id
@@ -214,6 +226,8 @@ type GetOrderByIDRow struct {
 	AddressLng        pgtype.Numeric     `json:"address_lng"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DiscountCode      pgtype.Text        `json:"discount_code"`
+	DiscountAmount    int64              `json:"discount_amount"`
 	UserPhone         string             `json:"user_phone"`
 }
 
@@ -235,6 +249,8 @@ func (q *Queries) GetOrderByID(ctx context.Context, id uuid.UUID) (GetOrderByIDR
 		&i.AddressLng,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DiscountCode,
+		&i.DiscountAmount,
 		&i.UserPhone,
 	)
 	return i, err
@@ -312,7 +328,7 @@ func (q *Queries) GetOrderItems(ctx context.Context, orderID uuid.UUID) ([]GetOr
 }
 
 const getOrdersByUser = `-- name: GetOrdersByUser :many
-SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at FROM orders
+SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at, discount_code, discount_amount FROM orders
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -341,6 +357,8 @@ func (q *Queries) GetOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Orde
 			&i.AddressLng,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DiscountCode,
+			&i.DiscountAmount,
 		); err != nil {
 			return nil, err
 		}
@@ -353,7 +371,7 @@ func (q *Queries) GetOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Orde
 }
 
 const getOrdersByUserAndStatus = `-- name: GetOrdersByUserAndStatus :many
-SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+SELECT id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at, discount_code, discount_amount
 FROM orders
 WHERE user_id = $1
   AND status = $2
@@ -398,6 +416,8 @@ func (q *Queries) GetOrdersByUserAndStatus(ctx context.Context, arg GetOrdersByU
 			&i.AddressLng,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DiscountCode,
+			&i.DiscountAmount,
 		); err != nil {
 			return nil, err
 		}
@@ -413,7 +433,7 @@ const updateOrderStatus = `-- name: UpdateOrderStatus :one
 UPDATE orders
 SET status = $1, updated_at = NOW()
 WHERE id = $2
-RETURNING id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at
+RETURNING id, user_id, status, shipping_cost, total_price, address_title, address_province, address_city, address_detail, address_postal_code, address_lat, address_lng, created_at, updated_at, discount_code, discount_amount
 `
 
 type UpdateOrderStatusParams struct {
@@ -439,6 +459,8 @@ func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusPa
 		&i.AddressLng,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DiscountCode,
+		&i.DiscountAmount,
 	)
 	return i, err
 }
