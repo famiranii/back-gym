@@ -110,11 +110,11 @@ func SetupRoutes(server *api.Server) error {
 
 	// Cart
 	cart := handlers.NewCartHandler(server.Store)
-	server.App.Get("/cart", auth, cart.GetCart)               //done
-	server.App.Post("/cart", auth, cart.AddToCart)            //done
-	server.App.Patch("/cart/:id", auth, cart.UpdateCartItem)  //done
-	server.App.Delete("/cart/:id", auth, cart.RemoveFromCart) //done
-	server.App.Delete("/cart", auth, cart.ClearCart)          // done
+	server.App.Get("/cart", optionalAuth, cart.GetCart)               //done
+	server.App.Post("/cart", optionalAuth, cart.AddToCart)            //done
+	server.App.Patch("/cart/:id", optionalAuth, cart.UpdateCartItem)  //done
+	server.App.Delete("/cart/:id", optionalAuth, cart.RemoveFromCart) //done
+	server.App.Delete("/cart", optionalAuth, cart.ClearCart)          // done
 
 	// Shipping
 	shipping := handlers.NewShippingHandler(server.Store)

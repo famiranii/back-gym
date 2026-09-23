@@ -47,6 +47,7 @@ type Querier interface {
 	GetAverageRating(ctx context.Context, productID uuid.UUID) (float64, error)
 	GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, error)
+	GetGuestCart(ctx context.Context, dollar_1 []uuid.UUID) ([]GetGuestCartRow, error)
 	GetLatestOTP(ctx context.Context, arg GetLatestOTPParams) (OtpCode, error)
 	GetLowStockProducts(ctx context.Context) ([]GetLowStockProductsRow, error)
 	GetOrderByID(ctx context.Context, id uuid.UUID) (GetOrderByIDRow, error)

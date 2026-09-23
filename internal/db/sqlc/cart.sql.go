@@ -140,6 +140,84 @@ func (q *Queries) GetCart(ctx context.Context, userID uuid.UUID) ([]GetCartRow, 
 	return items, nil
 }
 
+const getGuestCart = `-- name: GetGuestCart :many
+SELECT
+    pv.id AS variant_id,
+    pv.label,
+    pv.color,
+    pv.stock,
+
+    p.id AS product_id,
+    p.name AS product_name,
+    p.price,
+    p.discount,
+
+    ROUND(
+        p.price * (1 - COALESCE(p.discount, 0) / 100.0)
+    )::bigint AS final_price,
+
+    pi.url AS image_url
+
+FROM product_variants pv
+
+JOIN products p
+    ON p.id = pv.product_id
+
+LEFT JOIN LATERAL (
+    SELECT url
+    FROM product_images
+    WHERE product_id = p.id
+    ORDER BY created_at
+    LIMIT 1
+) pi ON true
+
+WHERE pv.id = ANY($1::uuid[])
+`
+
+type GetGuestCartRow struct {
+	VariantID   uuid.UUID      `json:"variant_id"`
+	Label       string         `json:"label"`
+	Color       pgtype.Text    `json:"color"`
+	Stock       int32          `json:"stock"`
+	ProductID   uuid.UUID      `json:"product_id"`
+	ProductName string         `json:"product_name"`
+	Price       pgtype.Numeric `json:"price"`
+	Discount    pgtype.Numeric `json:"discount"`
+	FinalPrice  int64          `json:"final_price"`
+	ImageUrl    string         `json:"image_url"`
+}
+
+func (q *Queries) GetGuestCart(ctx context.Context, dollar_1 []uuid.UUID) ([]GetGuestCartRow, error) {
+	rows, err := q.db.Query(ctx, getGuestCart, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetGuestCartRow{}
+	for rows.Next() {
+		var i GetGuestCartRow
+		if err := rows.Scan(
+			&i.VariantID,
+			&i.Label,
+			&i.Color,
+			&i.Stock,
+			&i.ProductID,
+			&i.ProductName,
+			&i.Price,
+			&i.Discount,
+			&i.FinalPrice,
+			&i.ImageUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const removeFromCart = `-- name: RemoveFromCart :exec
 DELETE FROM cart_items
 WHERE id = $1

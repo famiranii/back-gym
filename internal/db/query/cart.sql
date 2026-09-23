@@ -68,3 +68,36 @@ WHERE id = @id
 -- name: ClearCart :exec
 DELETE FROM cart_items
 WHERE user_id = @user_id;
+
+-- name: GetGuestCart :many
+SELECT
+    pv.id AS variant_id,
+    pv.label,
+    pv.color,
+    pv.stock,
+
+    p.id AS product_id,
+    p.name AS product_name,
+    p.price,
+    p.discount,
+
+    ROUND(
+        p.price * (1 - COALESCE(p.discount, 0) / 100.0)
+    )::bigint AS final_price,
+
+    pi.url AS image_url
+
+FROM product_variants pv
+
+JOIN products p
+    ON p.id = pv.product_id
+
+LEFT JOIN LATERAL (
+    SELECT url
+    FROM product_images
+    WHERE product_id = p.id
+    ORDER BY created_at
+    LIMIT 1
+) pi ON true
+
+WHERE pv.id = ANY($1::uuid[]);
