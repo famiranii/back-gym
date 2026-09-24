@@ -491,8 +491,8 @@ func (h *OTPHandler) issueSession(c fiber.Ctx, user db.User) error {
 		Value:    accessToken,
 		Expires:  accessPayload.ExpiredAt,
 		HTTPOnly: true,
-		Secure:    true,
-		SameSite: "Lax",
+		Secure:   true,
+		SameSite: "none",
 		Path:     "/",
 	})
 	c.Cookie(&fiber.Cookie{
@@ -500,8 +500,8 @@ func (h *OTPHandler) issueSession(c fiber.Ctx, user db.User) error {
 		Value:    refreshToken,
 		Expires:  refreshPayload.ExpiredAt,
 		HTTPOnly: true,
-		Secure:    true,
-		SameSite: "Lax",
+		Secure:   true,
+		SameSite: "none",
 		Path:     "/",
 	})
 

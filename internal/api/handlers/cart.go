@@ -558,7 +558,7 @@ func (h *CartHandler) ClearCart(c fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: "none",
 		MaxAge:   -1,
 	})
 
@@ -616,7 +616,7 @@ func (h *CartHandler) setGuestCartCookie(
 		Path:     "/",
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: "none",
 		MaxAge:   60 * 60 * 24 * 30,
 	})
 

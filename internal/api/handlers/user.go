@@ -200,7 +200,7 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 		Expires:  accessPayload.ExpiredAt,
 		HTTPOnly: true,
 		Secure:   true, // localhost -> true in production
-		SameSite: "lax",
+		SameSite: "none",
 		Path:     "/",
 		Domain:   u.Config.COOKIE_DOMAIN,
 	})
@@ -214,7 +214,7 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 		Expires:  refreshPayload.ExpiredAt,
 		HTTPOnly: true,
 		Secure:   true, // localhost -> true in production
-		SameSite: "lax",
+		SameSite: "none",
 		Path:     "/",
 		Domain:   u.Config.COOKIE_DOMAIN,
 	})
@@ -365,7 +365,7 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 		Expires:  time.Unix(0, 0),
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "lax",
+		SameSite: "none",
 		Path:     "/",
 		Domain:   u.Config.COOKIE_DOMAIN,
 	})
@@ -376,7 +376,7 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 		Expires:  time.Unix(0, 0),
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "lax",
+		SameSite: "none",
 		Path:     "/",
 		Domain:   u.Config.COOKIE_DOMAIN,
 	})
@@ -461,7 +461,7 @@ func (u *UserHandler) RefreshToken(c fiber.Ctx) error {
 		Expires:  accessPayload.ExpiredAt,
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "lax",
+		SameSite: "none",
 		Path:     "/",
 		Domain:   u.Config.COOKIE_DOMAIN,
 	})

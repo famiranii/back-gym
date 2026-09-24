@@ -57,7 +57,7 @@ func AuthMiddleware(tokenMaker token.Maker) fiber.Handler {
 			Value:    newAccessToken,
 			HTTPOnly: true,
 			Secure:   true,
-			SameSite: "Lax",
+			SameSite: "none",
 			Path:     "/",
 		})
 
