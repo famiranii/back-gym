@@ -202,6 +202,7 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 		Secure:   true, // localhost -> true in production
 		SameSite: "lax",
 		Path:     "/",
+		Domain:   u.Config.COOKIE_DOMAIN,
 	})
 
 	// -----------------------------
@@ -215,6 +216,7 @@ func (u *UserHandler) LoginUser(c fiber.Ctx) error {
 		Secure:   true, // localhost -> true in production
 		SameSite: "lax",
 		Path:     "/",
+		Domain:   u.Config.COOKIE_DOMAIN,
 	})
 
 	// Response
@@ -365,6 +367,7 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 		Secure:   true,
 		SameSite: "lax",
 		Path:     "/",
+		Domain:   u.Config.COOKIE_DOMAIN,
 	})
 
 	c.Cookie(&fiber.Cookie{
@@ -375,6 +378,7 @@ func (u *UserHandler) Logout(c fiber.Ctx) error {
 		Secure:   true,
 		SameSite: "lax",
 		Path:     "/",
+		Domain:   u.Config.COOKIE_DOMAIN,
 	})
 
 	return c.JSON(fiber.Map{
@@ -459,6 +463,7 @@ func (u *UserHandler) RefreshToken(c fiber.Ctx) error {
 		Secure:   true,
 		SameSite: "lax",
 		Path:     "/",
+		Domain:   u.Config.COOKIE_DOMAIN,
 	})
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{

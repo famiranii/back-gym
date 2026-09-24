@@ -25,6 +25,8 @@ type Config struct {
 	SMS_FROM                  string        `mapstructure:"SMS_FROM"`
 	MAPIR_API_KEY             string        `mapstructure:"MAPIR_API_KEY"`
 	MAPIR_DAILY_REQUEST_LIMIT int           `mapstructure:"MAPIR_DAILY_REQUEST_LIMIT"`
+	COOKIE_DOMAIN             string        `mapstructure:"COOKIE_DOMAIN"`
+	ENVIRONMENT               string        `mapstructure:"ENVIRONMENT"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -42,7 +44,8 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("SMS_FROM")
 	viper.BindEnv("MAPIR_API_KEY")
 	viper.BindEnv("MAPIR_DAILY_REQUEST_LIMIT")
-
+	viper.BindEnv("COOKIE_DOMAIN")
+	viper.BindEnv("ENVIRONMENT")
 	err = viper.ReadInConfig()
 	if err != nil {
 		return
