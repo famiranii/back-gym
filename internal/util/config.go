@@ -27,6 +27,12 @@ type Config struct {
 	MAPIR_DAILY_REQUEST_LIMIT int           `mapstructure:"MAPIR_DAILY_REQUEST_LIMIT"`
 	COOKIE_DOMAIN             string        `mapstructure:"COOKIE_DOMAIN"`
 	ENVIRONMENT               string        `mapstructure:"ENVIRONMENT"`
+	ZARINPAL_MERCHANT_ID      string        `mapstructure:"ZARINPAL_MERCHANT_ID"`
+	ZARINPAL_CALLBACK_URL     string        `mapstructure:"ZARINPAL_CALLBACK_URL"`
+	ZARINPAL_REQUEST_URL      string        `mapstructure:"ZARINPAL_REQUEST_URL"`
+	ZARINPAL_VERIFY_URL       string        `mapstructure:"ZARINPAL_VERIFY_URL"`
+	ZARINPAL_START_PAY_URL    string        `mapstructure:"ZARINPAL_START_PAY_URL"`
+	FRONTEND_URL              string        `mapstructure:"FRONTEND_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {
@@ -39,13 +45,25 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.BindEnv("JWT_SECRET")
 	viper.BindEnv("ACCESS_TOKEN_DURATION")
 	viper.BindEnv("REFRESH_TOKEN_DURATION")
+
 	viper.BindEnv("SMS_USERNAME")
 	viper.BindEnv("SMS_PASSWORD")
 	viper.BindEnv("SMS_FROM")
+
 	viper.BindEnv("MAPIR_API_KEY")
 	viper.BindEnv("MAPIR_DAILY_REQUEST_LIMIT")
+
 	viper.BindEnv("COOKIE_DOMAIN")
 	viper.BindEnv("ENVIRONMENT")
+
+	// ZarinPal
+	viper.BindEnv("ZARINPAL_MERCHANT_ID")
+	viper.BindEnv("ZARINPAL_CALLBACK_URL")
+	viper.BindEnv("ZARINPAL_REQUEST_URL")
+	viper.BindEnv("ZARINPAL_VERIFY_URL")
+	viper.BindEnv("ZARINPAL_START_PAY_URL")
+
+	viper.BindEnv("FRONTEND_URL")
 	err = viper.ReadInConfig()
 	if err != nil {
 		return

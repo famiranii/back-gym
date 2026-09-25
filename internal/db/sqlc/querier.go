@@ -15,6 +15,7 @@ type Querier interface {
 	AddToWishlist(ctx context.Context, arg AddToWishlistParams) (Wishlist, error)
 	ApproveReview(ctx context.Context, id int64) (ApproveReviewRow, error)
 	BlockSession(ctx context.Context, id uuid.UUID) (Session, error)
+	CancelExpiredOrdersByPaymentForUser(ctx context.Context, userID uuid.UUID) error
 	ClearCart(ctx context.Context, userID uuid.UUID) error
 	ConsumeOTP(ctx context.Context, id uuid.UUID) error
 	CreateBanner(ctx context.Context, arg CreateBannerParams) (Banner, error)
@@ -23,6 +24,7 @@ type Querier interface {
 	CreateOTP(ctx context.Context, arg CreateOTPParams) (OtpCode, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error)
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error)
+	CreatePayment(ctx context.Context, arg CreatePaymentParams) (Payment, error)
 	CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error)
 	CreateProductImage(ctx context.Context, arg CreateProductImageParams) (ProductImage, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
@@ -57,6 +59,9 @@ type Querier interface {
 	GetOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	GetOrdersByUserAndStatus(ctx context.Context, arg GetOrdersByUserAndStatusParams) ([]Order, error)
 	GetPaidOrdersCount(ctx context.Context) (int64, error)
+	GetPaymentByAuthority(ctx context.Context, authority string) (Payment, error)
+	GetPaymentByAuthorityForUpdate(ctx context.Context, authority string) (Payment, error)
+	GetPaymentByOrderID(ctx context.Context, orderID uuid.UUID) (Payment, error)
 	GetPendingOrdersCount(ctx context.Context) (int64, error)
 	// =========================================================
 	// Admin Reviews
@@ -88,6 +93,9 @@ type Querier interface {
 	IsInWishlist(ctx context.Context, arg IsInWishlistParams) (bool, error)
 	ListDiscountCodes(ctx context.Context) ([]DiscountCode, error)
 	MarkOrderAsPaid(ctx context.Context, id uuid.UUID) (Order, error)
+	MarkPaymentExpired(ctx context.Context, id int64) (Payment, error)
+	MarkPaymentFailed(ctx context.Context, id int64) (Payment, error)
+	MarkPaymentPaid(ctx context.Context, arg MarkPaymentPaidParams) (Payment, error)
 	RejectReview(ctx context.Context, id int64) (RejectReviewRow, error)
 	RemoveFromCart(ctx context.Context, arg RemoveFromCartParams) error
 	RemoveFromWishlist(ctx context.Context, arg RemoveFromWishlistParams) error

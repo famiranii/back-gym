@@ -100,6 +100,22 @@ type OtpCode struct {
 	CreatedAt  pgtype.Timestamp `json:"created_at"`
 }
 
+type Payment struct {
+	ID        int64              `json:"id"`
+	OrderID   uuid.UUID          `json:"order_id"`
+	Amount    int64              `json:"amount"`
+	Authority string             `json:"authority"`
+	Status    string             `json:"status"`
+	RefID     pgtype.Int8        `json:"ref_id"`
+	CardPan   pgtype.Text        `json:"card_pan"`
+	CardHash  pgtype.Text        `json:"card_hash"`
+	FeeType   pgtype.Text        `json:"fee_type"`
+	Fee       pgtype.Int8        `json:"fee"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+}
+
 type Product struct {
 	ID          uuid.UUID        `json:"id"`
 	Name        string           `json:"name"`

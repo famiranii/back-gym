@@ -12,6 +12,25 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelExpiredOrdersByPaymentForUser = `-- name: CancelExpiredOrdersByPaymentForUser :exec
+UPDATE orders o
+SET status = 'cancelled'
+WHERE o.user_id = $1
+  AND o.status = 'pending'
+  AND EXISTS (
+      SELECT 1
+      FROM payments p
+      WHERE p.order_id = o.id
+        AND p.expires_at <= NOW()
+        AND p.status = 'pending'
+  )
+`
+
+func (q *Queries) CancelExpiredOrdersByPaymentForUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, cancelExpiredOrdersByPaymentForUser, userID)
+	return err
+}
+
 const createOrder = `-- name: CreateOrder :one
 INSERT INTO orders (
     user_id,

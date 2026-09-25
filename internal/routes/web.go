@@ -142,7 +142,7 @@ func SetupRoutes(server *api.Server) error {
 	whishList := handlers.NewWishlistHandler(server.Store)
 	server.App.Get("/wishlist", auth, whishList.GetWishlist)
 	server.App.Post("/wishlist", auth, whishList.ToggleWishlist)
-	server.App.Delete("wishlist/:product_id", auth, whishList.RemoveFromWishlist)
+	server.App.Delete("/wishlist/:product_id", auth, whishList.RemoveFromWishlist)
 
 	//dashboard
 	admin := handlers.NewAdminHandler(server.Store)
@@ -166,5 +166,18 @@ func SetupRoutes(server *api.Server) error {
 	)
 
 	server.App.Get("/places/search", placeHandler.Search)
+
+	//payment
+	paymentHandler := handlers.NewPaymentHandler(
+		server.Store,
+		server.Config,
+		server.ZarinPal,
+		server.SMS,
+	)
+
+	payment := server.App.Group("/api/payment")
+
+	payment.Post("/zarinpal/request", auth, paymentHandler.CreateZarinPalPayment)
+	payment.Get("/zarinpal/callback", paymentHandler.ZarinPalCallback)
 	return nil
 }

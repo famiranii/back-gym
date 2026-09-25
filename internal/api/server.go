@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	db "github.com/famiranii/back-gym.git/internal/db/sqlc"
+	"github.com/famiranii/back-gym.git/internal/payment"
 	"github.com/famiranii/back-gym.git/internal/sms"
 	"github.com/famiranii/back-gym.git/internal/token"
 	"github.com/famiranii/back-gym.git/internal/util"
@@ -17,6 +18,7 @@ type Server struct {
 	App        *fiber.App
 	TokenMaker token.Maker
 	SMS        *sms.Client
+	ZarinPal   *payment.ZarinPalService
 }
 
 func NewServer(config util.Config, store *db.Store) (*Server, error) {
@@ -43,15 +45,27 @@ func NewServer(config util.Config, store *db.Store) (*Server, error) {
 		config.SMS_FROM,
 	)
 
+	// ----------------------------------------
+	// ZarinPal
+	// ----------------------------------------
+
+	zarinPal := payment.NewZarinPalService(
+		config.ZARINPAL_MERCHANT_ID,
+		config.ZARINPAL_REQUEST_URL,
+		config.ZARINPAL_VERIFY_URL,
+		config.ZARINPAL_START_PAY_URL,
+		config.ZARINPAL_CALLBACK_URL,
+	)
+
 	return &Server{
 		Config:     config,
 		Store:      store,
 		App:        app,
 		TokenMaker: tokenMaker,
 		SMS:        smsClient,
+		ZarinPal:   zarinPal,
 	}, nil
 }
-
 func (server *Server) Start(address string) error {
 	return server.App.Listen(fmt.Sprintf(":%s", address))
 }
